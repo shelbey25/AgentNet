@@ -1,9 +1,11 @@
 // POST /api/chat — GPT-powered chat endpoint
 // Receives user messages, runs GPT with MCP tool access to platform API
+// Pre-fetches user memories so GPT has full context from the start
 
 import { NextRequest, NextResponse } from "next/server";
 import { runChat } from "@/lib/chat-engine";
 import { prisma } from "@/lib/db";
+import { auth } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,8 +26,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Run GPT with tool calling
-    const result = await runChat(messages);
+    // Get user context — pre-fetch memories so GPT has them in the system prompt
+    const session = await auth();
+    const userId = session?.user?.id;
+    let memories: Array<{ key: string; value: string }> = [];
+
+    if (userId) {
+      try {
+        const userMemories = await prisma.userMemory.findMany({
+          where: { userId },
+          orderBy: { updatedAt: "desc" },
+        });
+        memories = userMemories.map((m: { key: string; value: string }) => ({ key: m.key, value: m.value }));
+      } catch {
+        // Non-critical — proceed without memories
+      }
+    }
+
+    // Run GPT with tool calling + user context
+    const result = await runChat(messages, { userId, memories });
 
     // Optionally persist to chat session
     let sessionId = session_id;
@@ -61,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: result.message,
-      tool_calls: result.toolCalls?.map((tc) => ({
+      tool_calls: result.toolCalls?.map((tc: { endpoint: string; method: string }) => ({
         endpoint: tc.endpoint,
         method: tc.method,
       })),
