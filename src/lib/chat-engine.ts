@@ -85,8 +85,8 @@ function buildSystemPrompt(
 ): string {
   const memoryBlock =
     memories && memories.length > 0
-      ? `\n\nUSER'S SAVED PREFERENCES (from memory — use these proactively):\n${memories.map((m) => `- ${m.key}: ${m.value}`).join("\n")}\n\nYou ALREADY KNOW the above facts about this user. Use them automatically — do NOT ask the user to repeat information you already have. For example, if you know their allergy, factor it into every food recommendation without being asked.`
-      : `\n\nThe user has no saved preferences yet. When they mention preferences (allergies, major, interests, dietary needs, schedule), save them to memory using POST /api/v1/memory so you remember next time.`;
+      ? `\n\nUSER'S SAVED PREFERENCES (most recent first — already known, use proactively):\n${memories.map((m) => `- ${m.key}: ${m.value}`).join("\n")}\n\nYou ALREADY KNOW the above. Use them automatically. Do NOT re-save anything that is already listed above — avoid duplicates. If a preference changes (e.g., new allergy, updated schedule), save the UPDATED value to the SAME key to overwrite it.`
+      : `\n\nThe user has no saved preferences yet.`;
 
   return `You are BamaAgent, the AI assistant for the University of Alabama campus and Tuscaloosa community. You help students, faculty, and visitors navigate campus life.
 
@@ -96,6 +96,15 @@ You have access to the AgentNet platform API via the agentnet_api tool. The plat
 - **site**: campus locations (dining halls, libraries, rec centers) with menus, hours, facilities
 - **opportunity**: research positions, internships, scholarships, jobs
 ${memoryBlock}
+
+MEMORY RULES:
+- Save preferences to memory using POST /api/v1/memory whenever the user reveals something worth remembering
+- Save: allergies, dietary needs, major, year, interests, favorite foods, schedule, recent orders, bookings made
+- Use CONCISE keys (e.g., "allergy", "major", "favorite_food", "last_order", "schedule")
+- Use SHORT values — just the essential facts, not full sentences
+- Do NOT re-save something already in memory above — check first
+- If updating an existing preference, reuse the same key to overwrite
+- Memory saves are instant and non-blocking — save freely without worrying about slowing things down
 
 CRITICAL REASONING RULES:
 
@@ -290,14 +299,15 @@ async function handleMemoryCall(
         });
       }
 
-      const memory = await prisma.userMemory.upsert({
+      // Fire-and-forget — don't block GPT waiting for memory saves
+      prisma.userMemory.upsert({
         where: { userId_key: { userId, key } },
         update: { value, source: source || "chat" },
         create: { userId, key, value, source: source || "chat" },
-      });
+      }).catch((err: Error) => console.error("Memory save failed:", err.message));
 
       return JSON.stringify({
-        saved: { key: memory.key, value: memory.value },
+        saved: { key, value },
       });
     }
 

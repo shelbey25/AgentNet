@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
         const userMemories = await prisma.userMemory.findMany({
           where: { userId },
           orderBy: { updatedAt: "desc" },
+          take: 50, // Cap to prevent prompt overload
         });
         memories = userMemories.map((m: { key: string; value: string }) => ({ key: m.key, value: m.value }));
       } catch {
