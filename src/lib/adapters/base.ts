@@ -23,7 +23,17 @@ export interface ActionAdapter {
   ): Promise<AdapterResponse>;
 }
 
-// Registry of adapters by name
+// Supported integration types — each maps to an adapter implementation
+export type IntegrationTypeName =
+  | "custom"
+  | "square"
+  | "calendly"
+  | "shopify"
+  | "toast"
+  | "stripe_checkout"
+  | "manual";
+
+// Registry of adapters by integration type name
 const adapterRegistry = new Map<string, ActionAdapter>();
 
 export function registerAdapter(adapter: ActionAdapter) {

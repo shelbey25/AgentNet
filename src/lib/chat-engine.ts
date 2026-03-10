@@ -28,18 +28,22 @@ const AGENTNET_TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
 Available endpoints:
 
 SEARCH & DISCOVERY:
-- GET /api/v1/search?q=<query>&type=<person|business>&status=<available|hiring|looking_for_work>&capability=<ordering|booking|quotes|availability>
-  Search for businesses, people, and services. Returns IDs, capabilities, and available actions.
+- GET /api/v1/search?q=<query>&type=<person|business>&status=<available|hiring|looking_for_work>&capability=<ordering|booking|quotes|availability>&category=<restaurant|salon|etc>
+  Search for businesses, people, and services. Returns IDs, capabilities, category, and available actions.
+- GET /api/v1/search/text?q=<query>&category=<...>
+  Alias for /search — same parameters, same results.
 
 PROFILE:
 - GET /api/v1/profile/<id>
-  Get full profile with capabilities, services, and available action endpoints.
+  Get full profile with capabilities, services, category, integration_type, payment_mode, and available action endpoints.
 
 INFO SECTIONS (structured business data):
 - GET /api/v1/info/<business_id>
   List all info sections (menu, services, hours, etc.)
 - GET /api/v1/info/<business_id>/<section>
   Get specific section data (e.g., /info/<id>/menu, /info/<id>/services, /info/<id>/hours)
+- GET /api/v1/info/<business_id>/<section>/<subsection>
+  Get a subsection (e.g., /info/<id>/menu/lunch)
 
 ACTIONS:
 - GET /api/v1/availability?business_id=<id>&date=<YYYY-MM-DD>&service=<name>
@@ -47,7 +51,7 @@ ACTIONS:
 - POST /api/v1/book  body: {"business_id":"<id>","service":"<name>","time":"<ISO datetime>"}
   Book an appointment.
 - POST /api/v1/order  body: {"business_id":"<id>","items":[{"id":"<item_id>","qty":<n>}],"pickup_time":"<HH:MM>"}
-  Place an order.
+  Place an order. Response includes payment_mode and next_step (e.g., checkout_url to pay, pay_on_pickup, etc.)
 - POST /api/v1/message  body: {"recipient_id":"<id>","message":"<text>","subject":"<subject>"}
   Send a message.
 - POST /api/v1/request_service  body: {"provider_id":"<id>","service":"<name>","time_preference":"<pref>"}
@@ -55,10 +59,18 @@ ACTIONS:
 - POST /api/v1/get_quote  body: {"business_id":"<id>","service":"<name>","details":{...}}
   Request a price quote.
 
+STATUS / FOLLOW-UP:
+- GET /api/v1/order/<order_id>          — Get order status, payment info, next_step
+- GET /api/v1/booking/<booking_id>      — Get booking status
+- GET /api/v1/quote/<quote_id>          — Get quote status and price
+- GET /api/v1/message/<message_id>      — Get message delivery status
+
 IMPORTANT:
 - Always search first to find business/person IDs before taking actions.
 - Use the profile endpoint to see what capabilities a business supports.
 - Use the info endpoint to get menus, services lists, and details before ordering/booking.
+- After placing an order, check the payment_mode and next_step in the response — guide the user accordingly.
+- Use status endpoints to check on previously created orders, bookings, quotes, or messages.
 - Dates use YYYY-MM-DD format. Times use ISO 8601 or HH:MM format.`,
       parameters: {
         type: "object",

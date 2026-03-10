@@ -41,7 +41,10 @@ export async function GET(
     name: profile.displayName,
     bio: profile.bio,
     location: profile.location,
+    category: profile.category,
     status: profile.status,
+    integration_type: profile.integrationType,
+    payment_mode: profile.paymentMode,
     capabilities: profile.capabilities.map((c) => c.type),
     skills: profile.skills.map((s) => ({
       name: s.name,
@@ -62,7 +65,7 @@ export async function GET(
       address: profile.address,
       hours: profile.hours,
     }),
-    info_sections: Object.entries(infoIndex).map(([section, subs]) => ({
+    available_sections: Object.entries(infoIndex).map(([section, subs]) => ({
       section,
       path: `/api/v1/info/${profile.id}/${section}`,
       subsections: subs,

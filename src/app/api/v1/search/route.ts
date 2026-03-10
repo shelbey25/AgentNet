@@ -7,6 +7,7 @@ import {
 import { Prisma } from "@prisma/client";
 
 // GET /api/v1/search — unified search for agents and frontend
+// Also aliased at /api/v1/search/text
 // Supports text search across businesses, people, services, skills
 export async function GET(request: NextRequest) {
   if (!checkPublicRateLimit(request)) return rateLimited();
@@ -16,6 +17,7 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type");
   const status = searchParams.get("status");
   const capability = searchParams.get("capability");
+  const category = searchParams.get("category");
   const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "20")));
   const offset = (page - 1) * limit;
@@ -39,12 +41,17 @@ export async function GET(request: NextRequest) {
     };
   }
 
+  if (category) {
+    where.category = { contains: category, mode: "insensitive" };
+  }
+
   if (q) {
     const searchTerms = q.toLowerCase().split(/\s+/).filter(Boolean);
     where.OR = searchTerms.flatMap((term) => [
       { displayName: { contains: term, mode: "insensitive" as const } },
       { bio: { contains: term, mode: "insensitive" as const } },
       { location: { contains: term, mode: "insensitive" as const } },
+      { category: { contains: term, mode: "insensitive" as const } },
       { skills: { some: { name: { contains: term, mode: "insensitive" as const } } } },
       { services: { some: { name: { contains: term, mode: "insensitive" as const } } } },
     ]);
@@ -74,6 +81,7 @@ export async function GET(request: NextRequest) {
       bio: p.bio,
       location: p.location,
       status: p.status,
+      category: p.category,
       capabilities: p.capabilities.map((c) => c.type),
       skills: p.skills.map((s) => s.name),
       services: p.services.map((s) => ({
@@ -81,7 +89,7 @@ export async function GET(request: NextRequest) {
         category: s.category,
         price: s.price,
       })),
-      info_sections: [...new Set(p.infoSections.map((i) => i.section))],
+      available_sections: [...new Set(p.infoSections.map((i) => i.section))],
       profile_url: `/api/v1/profile/${p.id}`,
       info_url: `/api/v1/info/${p.id}`,
     })),

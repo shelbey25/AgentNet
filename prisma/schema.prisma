@@ -69,6 +69,24 @@ enum QuoteStatus {
   expired
 }
 
+enum IntegrationType {
+  custom
+  square
+  calendly
+  shopify
+  toast
+  stripe_checkout
+  manual
+}
+
+enum PaymentMode {
+  checkout_url
+  business_api_charge
+  pay_on_pickup
+  invoice_later
+  unsupported
+}
+
 // ─── USERS ─────────────────────────────────────────────
 
 model User {
@@ -104,10 +122,13 @@ model Profile {
   status      ProfileStatus @default(available)
   isPublic    Boolean       @default(true)
   // Business-specific
-  phone       String?
-  website     String?
-  address     String?
-  hours       String?
+  category        String?
+  phone           String?
+  website         String?
+  address         String?
+  hours           String?
+  integrationType IntegrationType @default(manual)
+  paymentMode     PaymentMode     @default(unsupported)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -126,6 +147,7 @@ model Profile {
   @@index([status])
   @@index([type])
   @@index([location])
+  @@index([category])
   @@map("profiles")
 }
 
@@ -223,6 +245,9 @@ model Order {
   total       Float?
   pickupTime  String?
   status      OrderStatus @default(pending)
+  paymentMode String?     // checkout_url, pay_on_pickup, etc.
+  checkoutUrl String?     // external checkout URL if applicable
+  nextStep    String?     // what the agent/user should do next
   notes       String?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt

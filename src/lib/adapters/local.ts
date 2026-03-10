@@ -15,6 +15,12 @@ export async function handleLocalOrder(
     return { success: false, error: "No items provided", statusCode: 400 };
   }
 
+  // Look up business profile for payment mode
+  const profile = await prisma.profile.findUnique({
+    where: { id: profileId },
+    select: { paymentMode: true },
+  });
+
   // Look up service/menu items from info sections
   const menuInfo = await prisma.infoSection.findFirst({
     where: { profileId, section: "menu" },
@@ -34,6 +40,36 @@ export async function handleLocalOrder(
     return { ...item, price };
   });
 
+  // Determine payment flow based on business's payment mode
+  const paymentMode = profile?.paymentMode || "unsupported";
+  let orderStatus: "pending" | "confirmed" = "pending";
+  let nextStep = "pending_business_confirmation";
+  let checkoutUrl: string | null = null;
+
+  switch (paymentMode) {
+    case "pay_on_pickup":
+      orderStatus = "confirmed";
+      nextStep = "pickup_order";
+      break;
+    case "checkout_url":
+      // Business has an external checkout — look up the endpoint
+      const checkoutEndpoint = await prisma.businessEndpoint.findFirst({
+        where: { profileId, action: "checkout", isActive: true },
+      });
+      checkoutUrl = checkoutEndpoint?.url || null;
+      nextStep = checkoutUrl ? "redirect_to_business_checkout" : "pending_business_confirmation";
+      break;
+    case "business_api_charge":
+      nextStep = "business_will_charge";
+      break;
+    case "invoice_later":
+      orderStatus = "confirmed";
+      nextStep = "invoice_pending";
+      break;
+    default:
+      nextStep = "pending_business_confirmation";
+  }
+
   const order = await prisma.order.create({
     data: {
       profileId,
@@ -42,7 +78,10 @@ export async function handleLocalOrder(
       total,
       pickupTime: (payload.pickup_time as string) || null,
       notes: (payload.notes as string) || null,
-      status: "pending",
+      status: orderStatus,
+      paymentMode,
+      checkoutUrl,
+      nextStep,
     },
   });
 
@@ -53,6 +92,9 @@ export async function handleLocalOrder(
       items: resolvedItems,
       total,
       status: order.status,
+      payment_mode: paymentMode,
+      ...(checkoutUrl && { checkout_url: checkoutUrl }),
+      next_step: nextStep,
       pickup_time: order.pickupTime,
     },
     statusCode: 201,

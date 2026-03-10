@@ -1,9 +1,10 @@
 // Action dispatcher — routes agent actions to the correct adapter
 // Flow: Agent → Platform API → Dispatcher → Adapter → Business Endpoint
+// Priority: external endpoint + named adapter → external endpoint + generic REST → local handler
 
 import { prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client";
-import { AdapterResponse } from "./base";
+import { AdapterResponse, getAdapter } from "./base";
 import { genericRestAdapter } from "./generic-rest";
 import {
   handleLocalOrder,
@@ -12,6 +13,8 @@ import {
   handleLocalQuote,
   handleLocalServiceRequest,
 } from "./local";
+// Ensure named adapters are registered
+import "./named-adapters";
 
 type CapabilityMapping = {
   [key: string]: string; // action → CapabilityType
@@ -46,14 +49,24 @@ export async function dispatchAction(
     }
   }
 
-  // 2. Check if business has an external endpoint registered
+  // 2. Get the business profile to check integration type
+  const profile = await prisma.profile.findUnique({
+    where: { id: profileId },
+    select: { integrationType: true, paymentMode: true },
+  });
+
+  // 3. Check if business has an external endpoint registered
   const endpoint = await prisma.businessEndpoint.findFirst({
     where: { profileId, action, isActive: true },
   });
 
-  // 3. If external endpoint exists, use generic REST adapter to proxy
+  // 4. If external endpoint exists, use the named adapter for this integration type
   if (endpoint) {
-    return genericRestAdapter.execute(
+    const integrationType = profile?.integrationType || "custom";
+    const namedAdapter = getAdapter(integrationType);
+    const adapter = namedAdapter || genericRestAdapter;
+
+    return adapter.execute(
       {
         url: endpoint.url,
         method: endpoint.method,
@@ -63,7 +76,7 @@ export async function dispatchAction(
     );
   }
 
-  // 4. Otherwise, handle locally
+  // 5. Otherwise, handle locally (business uses platform as backend)
   switch (action) {
     case "order":
       return handleLocalOrder(profileId, payload);

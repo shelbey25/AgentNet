@@ -20,6 +20,9 @@ export async function POST(request: NextRequest) {
     website,
     address,
     hours,
+    category,
+    integration_type,
+    payment_mode,
     capabilities,
     endpoints,
     info_sections,
@@ -46,6 +49,9 @@ export async function POST(request: NextRequest) {
         website: website || profile.website,
         address: address || profile.address,
         hours: hours || profile.hours,
+        category: category || profile.category,
+        integrationType: integration_type || profile.integrationType,
+        paymentMode: payment_mode || profile.paymentMode,
         type: "business",
       },
     });
@@ -61,6 +67,9 @@ export async function POST(request: NextRequest) {
         website,
         address,
         hours,
+        category: category || null,
+        integrationType: integration_type || "manual",
+        paymentMode: payment_mode || "unsupported",
       },
     });
   }
@@ -163,12 +172,15 @@ export async function POST(request: NextRequest) {
     {
       business_id: profile.id,
       name: profile.displayName,
+      category: profile.category,
+      integration_type: profile.integrationType,
+      payment_mode: profile.paymentMode,
       capabilities: result?.capabilities.map((c) => c.type) || [],
       endpoints: result?.businessEndpoints.map((e) => ({
         action: e.action,
         url: e.url,
       })) || [],
-      info_sections: [...new Set(result?.infoSections.map((i) => i.section) ?? [])],
+      available_sections: [...new Set(result?.infoSections.map((i) => i.section) ?? [])],
       services: result?.services.length || 0,
     },
     { status: 200 }
