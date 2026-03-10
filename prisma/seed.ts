@@ -916,7 +916,7 @@ async function main() {
                 data: {
                   count: 20,
                   capacity: "2-8 people per room",
-                  how_to_reserve: "Reserve online at lib.ua.edu/rooms or at the front desk",
+                  how_to_reserve: "Book through AgentNet or at the front desk",
                   max_duration: "4 hours per reservation",
                   equipment: ["Whiteboard", "HDMI display", "Power outlets"],
                   floors: "2nd and 3rd floors",
