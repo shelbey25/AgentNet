@@ -333,9 +333,17 @@ export interface ChatResponse {
   }>;
 }
 
-// Run a multi-turn GPT conversation with tool calling
-export async function runChat(
+// Event types for streaming
+export type ChatEvent =
+  | { type: "tool_start"; method: string; endpoint: string }
+  | { type: "tool_done"; method: string; endpoint: string; status: "ok" | "error" }
+  | { type: "thinking" }
+  | { type: "message"; content: string; toolCalls: Array<{ endpoint: string; method: string }> };
+
+// Streaming version — yields events as each tool call happens
+export async function runChatStream(
   userMessages: Array<{ role: "user" | "assistant"; content: string }>,
+  onEvent: (event: ChatEvent) => void,
   options?: {
     userId?: string;
     memories?: Array<{ key: string; value: string }>;
@@ -359,6 +367,8 @@ export async function runChat(
 
   // Loop until GPT gives a final text response (max 10 tool call rounds)
   for (let i = 0; i < 10; i++) {
+    onEvent({ type: "thinking" });
+
     const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o",
       messages,
@@ -370,6 +380,106 @@ export async function runChat(
 
     if (choice.finish_reason === "tool_calls" || choice.message.tool_calls) {
       // GPT wants to call tools
+      messages.push(choice.message);
+
+      for (const toolCall of choice.message.tool_calls || []) {
+        if (toolCall.type !== "function") continue;
+        const fn = toolCall.function;
+        const args = JSON.parse(fn.arguments);
+
+        // Emit tool_start event BEFORE executing
+        onEvent({ type: "tool_start", method: args.method, endpoint: args.path });
+
+        const result = await executeToolCall(
+          args.method,
+          args.path,
+          args.body,
+          options?.userId
+        );
+
+        const isError = result.includes('"error"');
+        onEvent({ type: "tool_done", method: args.method, endpoint: args.path, status: isError ? "error" : "ok" });
+
+        toolCallLog.push({
+          endpoint: args.path,
+          method: args.method,
+          result,
+        });
+
+        messages.push({
+          role: "tool",
+          tool_call_id: toolCall.id,
+          content: result,
+        });
+      }
+    } else {
+      // GPT gave a final text response
+      const finalToolCalls = toolCallLog.map((tc) => ({ endpoint: tc.endpoint, method: tc.method }));
+      const content = choice.message.content || "I couldn't generate a response.";
+
+      onEvent({ type: "message", content, toolCalls: finalToolCalls });
+
+      return {
+        message: content,
+        toolCalls: toolCallLog.length > 0 ? toolCallLog : undefined,
+      };
+    }
+  }
+
+  const fallback = "I made several API calls but couldn't complete the task. Try being more specific.";
+  onEvent({ type: "message", content: fallback, toolCalls: toolCallLog.map((tc) => ({ endpoint: tc.endpoint, method: tc.method })) });
+
+  return {
+    message: fallback,
+    toolCalls: toolCallLog,
+  };
+}
+
+// Non-streaming version (kept for backward compat)
+export async function runChat(
+  userMessages: Array<{ role: "user" | "assistant"; content: string }>,
+  options?: {
+    userId?: string;
+    memories?: Array<{ key: string; value: string }>;
+  }
+): Promise<ChatResponse> {
+  return runChatNonStream(userMessages, options);
+}
+
+async function runChatNonStream(
+  userMessages: Array<{ role: "user" | "assistant"; content: string }>,
+  options?: {
+    userId?: string;
+    memories?: Array<{ key: string; value: string }>;
+  }
+): Promise<ChatResponse> {
+  const systemPrompt = buildSystemPrompt(options?.memories);
+
+  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    { role: "system", content: systemPrompt },
+    ...userMessages.map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    })),
+  ];
+
+  const toolCallLog: Array<{
+    endpoint: string;
+    method: string;
+    result: string;
+  }> = [];
+
+  for (let i = 0; i < 10; i++) {
+    const completion = await getOpenAI().chat.completions.create({
+      model: "gpt-4o",
+      messages,
+      tools: AGENTNET_TOOLS,
+      tool_choice: "auto",
+    });
+
+    const choice = completion.choices[0];
+
+    if (choice.finish_reason === "tool_calls" || choice.message.tool_calls) {
       messages.push(choice.message);
 
       for (const toolCall of choice.message.tool_calls || []) {
@@ -396,7 +506,6 @@ export async function runChat(
         });
       }
     } else {
-      // GPT gave a final text response
       return {
         message: choice.message.content || "I couldn't generate a response.",
         toolCalls: toolCallLog.length > 0 ? toolCallLog : undefined,
@@ -405,8 +514,7 @@ export async function runChat(
   }
 
   return {
-    message:
-      "I made several API calls but couldn't complete the task. Try being more specific.",
+    message: "I made several API calls but couldn't complete the task. Try being more specific.",
     toolCalls: toolCallLog,
   };
 }
