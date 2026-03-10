@@ -1,0 +1,150 @@
+// AgentNet MVP Database Schema
+// PostgreSQL + Prisma
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── USER TYPES ────────────────────────────────────────
+enum UserRole {
+  person
+  business
+  admin
+}
+
+enum ProfileStatus {
+  available
+  looking_for_work
+  hiring
+  busy
+  inactive
+}
+
+// ─── USERS ─────────────────────────────────────────────
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         UserRole @default(person)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  profile          Profile?
+  sentMessages     Message[]        @relation("SentMessages")
+  receivedMessages Message[]        @relation("ReceivedMessages")
+  apiKeys          ApiKey[]
+  messageSettings  MessageSettings?
+
+  @@map("users")
+}
+
+// ─── PROFILES ──────────────────────────────────────────
+model Profile {
+  id          String        @id @default(uuid())
+  userId      String        @unique
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        UserRole      // person or business
+  displayName String
+  bio         String?
+  location    String        @default("Tuscaloosa, AL")
+  avatarUrl   String?
+  status      ProfileStatus @default(available)
+  isPublic    Boolean       @default(true)
+  // Business-specific fields
+  phone       String?
+  website     String?
+  address     String?
+  hours       String?       // Free-form business hours
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  skills   Skill[]
+  services Service[]
+
+  @@index([status])
+  @@index([type])
+  @@index([location])
+  @@map("profiles")
+}
+
+// ─── SKILLS (for people) ───────────────────────────────
+model Skill {
+  id        String  @id @default(uuid())
+  profileId String
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  name      String
+  category  String?
+
+  @@index([name])
+  @@index([profileId])
+  @@map("skills")
+}
+
+// ─── SERVICES (for businesses) ─────────────────────────
+model Service {
+  id          String  @id @default(uuid())
+  profileId   String
+  profile     Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  category    String?
+  price       String? // Free-form: "$20/hr", "Free", "Starting at $50"
+
+  @@index([category])
+  @@index([profileId])
+  @@map("services")
+}
+
+// ─── MESSAGES ──────────────────────────────────────────
+model Message {
+  id          String   @id @default(uuid())
+  senderId    String
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  recipientId String
+  recipient   User     @relation("ReceivedMessages", fields: [recipientId], references: [id])
+  subject     String
+  body        String
+  isRead      Boolean  @default(false)
+  isDraft     Boolean  @default(false) // For AI-drafted messages awaiting human review
+  createdAt   DateTime @default(now())
+
+  @@index([recipientId, isRead])
+  @@index([senderId])
+  @@map("messages")
+}
+
+// ─── API KEYS (for agents/apps) ────────────────────────
+model ApiKey {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String    // Friendly name like "My AI Agent"
+  keyHash    String    @unique // SHA-256 hash of the key
+  keyPrefix  String    // First 8 chars for display: "agn_xxxx..."
+  scopes     String[]  // e.g. ["read:search", "read:profiles", "write:messages.draft"]
+  rateLimit  Int       @default(60) // requests per minute
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([keyHash])
+  @@map("api_keys")
+}
+
+// ─── MESSAGE SETTINGS ──────────────────────────────────
+model MessageSettings {
+  id              String  @id @default(uuid())
+  userId          String  @unique
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  allowMessages   Boolean @default(true)
+  allowAgentDraft Boolean @default(true)
+  requireApproval Boolean @default(false) // Require approval before delivering
+
+  @@map("message_settings")
+}
