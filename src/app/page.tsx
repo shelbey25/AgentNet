@@ -1,98 +1,233 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect } from "react";
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+  toolCalls?: Array<{ endpoint: string; method: string }>;
+}
 
 export default function Home() {
-  const [query, setQuery] = useState("");
-  const router = useRouter();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const sendMessage = async () => {
+    const text = input.trim();
+    if (!text || loading) return;
+
+    const userMsg: Message = { role: "user", content: text };
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
+    setInput("");
+    setLoading(true);
+
+    try {
+      // Create session on first message
+      let sid = sessionId;
+      if (!sid) {
+        const sessionRes = await fetch("/api/chat/session", { method: "POST" });
+        const sessionData = await sessionRes.json();
+        sid = sessionData.session_id;
+        setSessionId(sid);
+      }
+
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: newMessages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+          session_id: sid,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.error) {
+        setMessages([
+          ...newMessages,
+          {
+            role: "assistant",
+            content: `Error: ${data.error}`,
+          },
+        ]);
+      } else {
+        setMessages([
+          ...newMessages,
+          {
+            role: "assistant",
+            content: data.message,
+            toolCalls: data.tool_calls,
+          },
+        ]);
+      }
+    } catch {
+      setMessages([
+        ...newMessages,
+        {
+          role: "assistant",
+          content: "Sorry, something went wrong. Please try again.",
+        },
+      ]);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  const suggestions = [
+    "Find me a barber near campus",
+    "Who does lawn care in Tuscaloosa?",
+    "I need a math tutor for Calculus II",
+    "Book a haircut for tomorrow at 3pm",
+    "What's on the menu at local restaurants?",
+    "Get me a quote for pressure washing",
+  ];
+
   return (
-    <div className="flex flex-col items-center">
-      {/* Hero */}
-      <div className="text-center mt-12 mb-12">
-        <h1 className="text-5xl font-bold text-gray-900 mb-4">
-          Discover Tuscaloosa
-        </h1>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Find people, businesses, and services in your community.
-          <br />
-          <span className="text-indigo-600 font-medium">AI-agent ready.</span>
-        </p>
+    <div className="flex flex-col h-[calc(100vh-5rem)] max-w-3xl mx-auto">
+      {/* Messages area */}
+      <div className="flex-1 overflow-y-auto px-2 py-4 space-y-4">
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            <div className="text-5xl mb-4">🌐</div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              AgentNet
+            </h1>
+            <p className="text-gray-500 mb-8 max-w-md">
+              Your AI-powered gateway to Tuscaloosa businesses and services.
+              Ask me anything — I&apos;ll search, find info, book appointments, and
+              more.
+            </p>
+            <div className="grid grid-cols-2 gap-2 max-w-lg w-full">
+              {suggestions.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => {
+                    setInput(s);
+                    inputRef.current?.focus();
+                  }}
+                  className="text-left text-sm px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-indigo-50 hover:border-indigo-200 transition-colors text-gray-600 hover:text-indigo-700"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                  msg.role === "user"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-white border border-gray-200 text-gray-800"
+                }`}
+              >
+                {msg.role === "assistant" ? (
+                  <div className="space-y-2">
+                    <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                      {msg.content}
+                    </div>
+                    {msg.toolCalls && msg.toolCalls.length > 0 && (
+                      <div className="border-t border-gray-100 pt-2 mt-2">
+                        <div className="text-xs text-gray-400 flex items-center gap-1">
+                          <span>⚡</span>
+                          {msg.toolCalls.length} API call
+                          {msg.toolCalls.length > 1 ? "s" : ""} made
+                          <details className="inline">
+                            <summary className="cursor-pointer ml-1 text-indigo-400 hover:text-indigo-600">
+                              details
+                            </summary>
+                            <div className="mt-1 space-y-1">
+                              {msg.toolCalls.map((tc, j) => (
+                                <div
+                                  key={j}
+                                  className="font-mono text-xs bg-gray-50 px-2 py-1 rounded"
+                                >
+                                  {tc.method} {tc.endpoint}
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="whitespace-pre-wrap text-sm">
+                    {msg.content}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3">
+              <div className="flex items-center gap-2 text-gray-400 text-sm">
+                <div className="flex gap-1">
+                  <span className="animate-bounce" style={{ animationDelay: "0ms" }}>•</span>
+                  <span className="animate-bounce" style={{ animationDelay: "150ms" }}>•</span>
+                  <span className="animate-bounce" style={{ animationDelay: "300ms" }}>•</span>
+                </div>
+                Searching Tuscaloosa...
+              </div>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
       </div>
 
-      {/* Search */}
-      <form onSubmit={handleSearch} className="w-full max-w-2xl mb-16">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder='Try "math tutor", "barber near campus", "looking for work"...'
-            className="flex-1 px-5 py-4 rounded-xl border border-gray-300 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm"
+      {/* Input area */}
+      <div className="border-t border-gray-200 bg-white px-4 py-3">
+        <div className="flex gap-2 items-end max-w-3xl mx-auto">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask about Tuscaloosa businesses, services, or people..."
+            rows={1}
+            className="flex-1 resize-none px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm max-h-32"
+            style={{ minHeight: "44px" }}
           />
           <button
-            type="submit"
-            className="px-8 py-4 bg-indigo-600 text-white rounded-xl text-lg font-medium hover:bg-indigo-700 shadow-sm"
+            onClick={sendMessage}
+            disabled={loading || !input.trim()}
+            className="px-4 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            Search
+            {loading ? "..." : "Send"}
           </button>
         </div>
-      </form>
-
-      {/* Quick filters */}
-      <div className="flex flex-wrap gap-3 mb-16 justify-center">
-        {[
-          { label: "People looking for work", q: "", type: "person", status: "looking_for_work" },
-          { label: "Businesses hiring", q: "", type: "business", status: "hiring" },
-          { label: "Tutors", q: "tutor", type: "", status: "" },
-          { label: "Barbers", q: "barber", type: "", status: "" },
-          { label: "Lawn care", q: "lawn care", type: "", status: "" },
-        ].map((filter) => (
-          <Link
-            key={filter.label}
-            href={`/search?q=${filter.q}${filter.type ? `&type=${filter.type}` : ""}${filter.status ? `&status=${filter.status}` : ""}`}
-            className="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm text-gray-700 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-colors shadow-sm"
-          >
-            {filter.label}
-          </Link>
-        ))}
-      </div>
-
-      {/* Features grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-4xl mb-20">
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-          <div className="text-3xl mb-3">👤</div>
-          <h3 className="font-semibold text-lg mb-2">People Profiles</h3>
-          <p className="text-gray-600 text-sm">
-            Create a profile, list your skills, and mark your availability.
-            Get found by people and businesses who need you.
-          </p>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-          <div className="text-3xl mb-3">🏪</div>
-          <h3 className="font-semibold text-lg mb-2">Business Listings</h3>
-          <p className="text-gray-600 text-sm">
-            Register your business, list services and hours. Let customers and
-            AI agents discover what you offer.
-          </p>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-          <div className="text-3xl mb-3">🤖</div>
-          <h3 className="font-semibold text-lg mb-2">AI-Agent API</h3>
-          <p className="text-gray-600 text-sm">
-            Build apps and AI agents that search for people and services. Scoped
-            API keys with safe, rate-limited access.
-          </p>
-        </div>
+        <p className="text-xs text-gray-400 text-center mt-2">
+          AgentNet uses AI to search and interact with local businesses via standardized APIs
+        </p>
       </div>
     </div>
   );

@@ -1,28 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import {
-  validateApiKey,
-  hasScope,
-  unauthorized,
-  forbidden,
+  checkPublicRateLimit,
   rateLimited,
 } from "@/lib/api-auth";
 
-// GET /api/v1/profiles/[id] — agent-readable profile
+// GET /api/v1/profile/[id] — full profile with capabilities
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authResult = await validateApiKey(request);
-
-  if (!authResult) return unauthorized();
-  if ("error" in authResult && authResult.error === "rate_limited")
-    return rateLimited();
-  if (
-    !("scopes" in authResult) ||
-    !hasScope(authResult.scopes, "read:profiles")
-  )
-    return forbidden("Missing scope: read:profiles");
+  if (!checkPublicRateLimit(request)) return rateLimited();
 
   const { id } = await params;
 
@@ -31,6 +19,8 @@ export async function GET(
     include: {
       skills: true,
       services: true,
+      capabilities: { where: { isActive: true } },
+      infoSections: { select: { section: true, subsection: true, title: true } },
     },
   });
 
@@ -38,22 +28,33 @@ export async function GET(
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
+  // Group info sections
+  const infoIndex: Record<string, string[]> = {};
+  for (const s of profile.infoSections) {
+    if (!infoIndex[s.section]) infoIndex[s.section] = [];
+    if (s.subsection) infoIndex[s.section].push(s.subsection);
+  }
+
   return NextResponse.json({
     id: profile.id,
-    displayName: profile.displayName,
     type: profile.type,
+    name: profile.displayName,
     bio: profile.bio,
     location: profile.location,
     status: profile.status,
+    capabilities: profile.capabilities.map((c) => c.type),
     skills: profile.skills.map((s) => ({
       name: s.name,
       category: s.category,
     })),
     services: profile.services.map((s) => ({
+      id: s.id,
       name: s.name,
       description: s.description,
       category: s.category,
       price: s.price,
+      duration: s.duration,
+      bookable: s.isBookable,
     })),
     ...(profile.type === "business" && {
       phone: profile.phone,
@@ -61,6 +62,23 @@ export async function GET(
       address: profile.address,
       hours: profile.hours,
     }),
-    meta: { agent: true, apiVersion: "v1" },
+    info_sections: Object.entries(infoIndex).map(([section, subs]) => ({
+      section,
+      path: `/api/v1/info/${profile.id}/${section}`,
+      subsections: subs,
+    })),
+    actions: {
+      order: profile.capabilities.some((c) => c.type === "ordering")
+        ? `/api/v1/order` : null,
+      book: profile.capabilities.some((c) => c.type === "booking")
+        ? `/api/v1/book` : null,
+      availability: profile.capabilities.some((c) => c.type === "availability")
+        ? `/api/v1/availability?business_id=${profile.id}` : null,
+      quote: profile.capabilities.some((c) => c.type === "quotes")
+        ? `/api/v1/get_quote` : null,
+      request_service: profile.capabilities.some((c) => c.type === "service_requests")
+        ? `/api/v1/request_service` : null,
+      message: `/api/v1/message`,
+    },
   });
 }

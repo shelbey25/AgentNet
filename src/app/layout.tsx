@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AgentNet — Tuscaloosa's Local Connection Platform",
+  title: "AgentNet — AI-Powered Local Platform for Tuscaloosa",
   description:
-    "Find people, businesses, and services in Tuscaloosa. AI-agent ready.",
+    "Chat with AI to discover businesses, book appointments, place orders, and more in Tuscaloosa.",
 };
 
 export default function RootLayout({

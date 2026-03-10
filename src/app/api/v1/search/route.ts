@@ -1,28 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import {
-  validateApiKey,
-  hasScope,
-  unauthorized,
-  forbidden,
+  checkPublicRateLimit,
   rateLimited,
 } from "@/lib/api-auth";
 import { Prisma } from "@prisma/client";
 
-// GET /api/v1/search — agent search endpoint (requires API key with read:search)
+// GET /api/v1/search — unified search for agents and frontend
+// Supports text search across businesses, people, services, skills
 export async function GET(request: NextRequest) {
-  const authResult = await validateApiKey(request);
-
-  if (!authResult) return unauthorized();
-  if ("error" in authResult && authResult.error === "rate_limited")
-    return rateLimited();
-  if (!("scopes" in authResult) || !hasScope(authResult.scopes, "read:search"))
-    return forbidden("Missing scope: read:search");
+  if (!checkPublicRateLimit(request)) return rateLimited();
 
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q") || "";
   const type = searchParams.get("type");
   const status = searchParams.get("status");
+  const capability = searchParams.get("capability");
   const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "20")));
   const offset = (page - 1) * limit;
@@ -40,6 +33,12 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  if (capability) {
+    where.capabilities = {
+      some: { type: capability as never, isActive: true },
+    };
+  }
+
   if (q) {
     const searchTerms = q.toLowerCase().split(/\s+/).filter(Boolean);
     where.OR = searchTerms.flatMap((term) => [
@@ -54,7 +53,12 @@ export async function GET(request: NextRequest) {
   const [profiles, total] = await Promise.all([
     prisma.profile.findMany({
       where,
-      include: { skills: true, services: true },
+      include: {
+        skills: true,
+        services: true,
+        capabilities: { where: { isActive: true } },
+        infoSections: { select: { section: true, subsection: true } },
+      },
       skip: offset,
       take: limit,
       orderBy: { updatedAt: "desc" },
@@ -65,17 +69,21 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     results: profiles.map((p) => ({
       id: p.id,
-      displayName: p.displayName,
       type: p.type,
+      name: p.displayName,
       bio: p.bio,
       location: p.location,
       status: p.status,
+      capabilities: p.capabilities.map((c) => c.type),
       skills: p.skills.map((s) => s.name),
       services: p.services.map((s) => ({
         name: s.name,
         category: s.category,
         price: s.price,
       })),
+      info_sections: [...new Set(p.infoSections.map((i) => i.section))],
+      profile_url: `/api/v1/profile/${p.id}`,
+      info_url: `/api/v1/info/${p.id}`,
     })),
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     meta: { agent: true, apiVersion: "v1" },

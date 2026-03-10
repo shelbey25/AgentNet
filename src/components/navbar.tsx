@@ -18,13 +18,13 @@ export function Navbar() {
             href="/search"
             className="text-gray-600 hover:text-gray-900 text-sm font-medium"
           >
-            Search
+            Browse
           </Link>
           <Link
             href="/docs"
             className="text-gray-600 hover:text-gray-900 text-sm font-medium"
           >
-            API Docs
+            API
           </Link>
 
           {status === "loading" ? (

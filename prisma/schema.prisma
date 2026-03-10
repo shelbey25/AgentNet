@@ -1,4 +1,5 @@
-// AgentNet MVP Database Schema
+// AgentNet Platform Schema
+// Normalized action layer between AI agents and businesses
 // PostgreSQL + Prisma
 
 generator client {
@@ -10,7 +11,8 @@ datasource db {
   provider = "postgresql"
 }
 
-// ─── USER TYPES ────────────────────────────────────────
+// ─── ENUMS ─────────────────────────────────────────────
+
 enum UserRole {
   person
   business
@@ -25,7 +27,50 @@ enum ProfileStatus {
   inactive
 }
 
+enum CapabilityType {
+  ordering
+  booking
+  messaging
+  service_requests
+  availability
+  quotes
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  preparing
+  ready
+  completed
+  cancelled
+}
+
+enum BookingStatus {
+  pending
+  confirmed
+  completed
+  cancelled
+  no_show
+}
+
+enum ServiceRequestStatus {
+  pending
+  accepted
+  in_progress
+  completed
+  cancelled
+}
+
+enum QuoteStatus {
+  pending
+  sent
+  accepted
+  declined
+  expired
+}
+
 // ─── USERS ─────────────────────────────────────────────
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
@@ -40,32 +85,43 @@ model User {
   receivedMessages Message[]        @relation("ReceivedMessages")
   apiKeys          ApiKey[]
   messageSettings  MessageSettings?
+  chatSessions     ChatSession[]
 
   @@map("users")
 }
 
 // ─── PROFILES ──────────────────────────────────────────
+
 model Profile {
   id          String        @id @default(uuid())
   userId      String        @unique
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        UserRole      // person or business
+  type        UserRole
   displayName String
   bio         String?
   location    String        @default("Tuscaloosa, AL")
   avatarUrl   String?
   status      ProfileStatus @default(available)
   isPublic    Boolean       @default(true)
-  // Business-specific fields
+  // Business-specific
   phone       String?
   website     String?
   address     String?
-  hours       String?       // Free-form business hours
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  hours       String?
 
-  skills   Skill[]
-  services Service[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  skills          Skill[]
+  services        Service[]
+  capabilities    Capability[]
+  businessEndpoints BusinessEndpoint[]
+  infoSections    InfoSection[]
+  orders          Order[]
+  bookings        Booking[]
+  serviceRequests ServiceRequest[] @relation("BusinessRequests")
+  quotes          Quote[]
+  actionLogs      ActionLog[]
 
   @@index([status])
   @@index([type])
@@ -74,6 +130,7 @@ model Profile {
 }
 
 // ─── SKILLS (for people) ───────────────────────────────
+
 model Skill {
   id        String  @id @default(uuid())
   profileId String
@@ -86,7 +143,8 @@ model Skill {
   @@map("skills")
 }
 
-// ─── SERVICES (for businesses) ─────────────────────────
+// ─── SERVICES ──────────────────────────────────────────
+
 model Service {
   id          String  @id @default(uuid())
   profileId   String
@@ -94,14 +152,147 @@ model Service {
   name        String
   description String?
   category    String?
-  price       String? // Free-form: "$20/hr", "Free", "Starting at $50"
+  price       String?
+  duration    Int?    // minutes, for bookable services
+  isBookable  Boolean @default(false)
 
   @@index([category])
   @@index([profileId])
   @@map("services")
 }
 
+// ─── CAPABILITIES ──────────────────────────────────────
+// Declares what actions a business supports
+
+model Capability {
+  id        String         @id @default(uuid())
+  profileId String
+  profile   Profile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  type      CapabilityType
+  isActive  Boolean        @default(true)
+
+  @@unique([profileId, type])
+  @@map("capabilities")
+}
+
+// ─── BUSINESS ENDPOINTS ────────────────────────────────
+// Optional external API endpoints businesses register
+
+model BusinessEndpoint {
+  id        String @id @default(uuid())
+  profileId String
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  action    String  // "book", "availability", "order", "quote"
+  url       String  // External endpoint URL
+  method    String  @default("POST") // HTTP method
+  headers   Json?   // Optional auth headers
+  isActive  Boolean @default(true)
+
+  @@unique([profileId, action])
+  @@map("business_endpoints")
+}
+
+// ─── INFO SECTIONS ─────────────────────────────────────
+// Structured data businesses expose: menu, services, hours, etc.
+// Hierarchical: /info/:businessId/:section/:subsection
+
+model InfoSection {
+  id         String @id @default(uuid())
+  profileId  String
+  profile    Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  section    String  // "menu", "services", "hours", "location", "faq", "policies"
+  subsection String? // Optional sub-path
+  title      String?
+  data       Json    // The structured data payload
+  cachedAt   DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([profileId, section, subsection])
+  @@index([profileId])
+  @@map("info_sections")
+}
+
+// ─── ORDERS ────────────────────────────────────────────
+
+model Order {
+  id          String      @id @default(uuid())
+  profileId   String      // business being ordered from
+  profile     Profile     @relation(fields: [profileId], references: [id])
+  customerId  String?     // optional user placing order
+  items       Json        // [{id, name, qty, price}]
+  total       Float?
+  pickupTime  String?
+  status      OrderStatus @default(pending)
+  notes       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([profileId])
+  @@index([status])
+  @@map("orders")
+}
+
+// ─── BOOKINGS ──────────────────────────────────────────
+
+model Booking {
+  id          String        @id @default(uuid())
+  profileId   String        // business being booked
+  profile     Profile       @relation(fields: [profileId], references: [id])
+  customerId  String?
+  service     String        // service name or id
+  dateTime    DateTime
+  duration    Int?          // minutes
+  status      BookingStatus @default(pending)
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([profileId])
+  @@index([dateTime])
+  @@map("bookings")
+}
+
+// ─── SERVICE REQUESTS ──────────────────────────────────
+
+model ServiceRequest {
+  id             String               @id @default(uuid())
+  profileId      String               // provider
+  profile        Profile              @relation("BusinessRequests", fields: [profileId], references: [id])
+  requesterId    String?
+  service        String
+  details        Json?                // Freeform details
+  timePreference String?
+  status         ServiceRequestStatus @default(pending)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@index([profileId])
+  @@map("service_requests")
+}
+
+// ─── QUOTES ────────────────────────────────────────────
+
+model Quote {
+  id             String      @id @default(uuid())
+  profileId      String      // business providing quote
+  profile        Profile     @relation(fields: [profileId], references: [id])
+  requesterId    String?
+  service        String
+  details        Json?
+  estimatedPrice Float?
+  currency       String      @default("USD")
+  notes          String?
+  status         QuoteStatus @default(pending)
+  expiresAt      DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([profileId])
+  @@map("quotes")
+}
+
 // ─── MESSAGES ──────────────────────────────────────────
+
 model Message {
   id          String   @id @default(uuid())
   senderId    String
@@ -111,7 +302,7 @@ model Message {
   subject     String
   body        String
   isRead      Boolean  @default(false)
-  isDraft     Boolean  @default(false) // For AI-drafted messages awaiting human review
+  isDraft     Boolean  @default(false)
   createdAt   DateTime @default(now())
 
   @@index([recipientId, isRead])
@@ -119,16 +310,17 @@ model Message {
   @@map("messages")
 }
 
-// ─── API KEYS (for agents/apps) ────────────────────────
+// ─── API KEYS ──────────────────────────────────────────
+
 model ApiKey {
   id         String    @id @default(uuid())
   userId     String
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name       String    // Friendly name like "My AI Agent"
-  keyHash    String    @unique // SHA-256 hash of the key
-  keyPrefix  String    // First 8 chars for display: "agn_xxxx..."
-  scopes     String[]  // e.g. ["read:search", "read:profiles", "write:messages.draft"]
-  rateLimit  Int       @default(60) // requests per minute
+  name       String
+  keyHash    String    @unique
+  keyPrefix  String
+  scopes     String[]
+  rateLimit  Int       @default(60)
   isActive   Boolean   @default(true)
   lastUsedAt DateTime?
   createdAt  DateTime  @default(now())
@@ -138,13 +330,67 @@ model ApiKey {
 }
 
 // ─── MESSAGE SETTINGS ──────────────────────────────────
+
 model MessageSettings {
   id              String  @id @default(uuid())
   userId          String  @unique
   user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   allowMessages   Boolean @default(true)
   allowAgentDraft Boolean @default(true)
-  requireApproval Boolean @default(false) // Require approval before delivering
+  requireApproval Boolean @default(false)
 
   @@map("message_settings")
+}
+
+// ─── CHAT SESSIONS ─────────────────────────────────────
+// Stores GPT-powered chat conversations
+
+model ChatSession {
+  id        String        @id @default(uuid())
+  userId    String?       // Null for anonymous
+  user      User?         @relation(fields: [userId], references: [id])
+  title     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  messages  ChatMessage[]
+
+  @@index([userId])
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id        String      @id @default(uuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String      // "user", "assistant", "tool"
+  content   String
+  toolCalls Json?       // Stored tool call data for replay
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId])
+  @@map("chat_messages")
+}
+
+// ─── ACTION LOG ────────────────────────────────────────
+// Audit trail for all platform actions
+
+model ActionLog {
+  id         String   @id @default(uuid())
+  profileId  String?
+  profile    Profile? @relation(fields: [profileId], references: [id])
+  action     String   // "order", "book", "quote", "search", etc.
+  method     String   // "GET", "POST"
+  path       String   // The endpoint path
+  payload    Json?
+  response   Json?
+  statusCode Int?
+  source     String?  // "agent", "user", "system"
+  apiKeyId   String?
+  duration   Int?     // ms
+  createdAt  DateTime @default(now())
+
+  @@index([profileId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("action_logs")
 }

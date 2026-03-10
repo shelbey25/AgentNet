@@ -8,110 +8,218 @@ export default function DocsPage() {
         <section>
           <h2 className="text-xl font-semibold mb-3">Overview</h2>
           <p className="text-gray-600 text-sm leading-relaxed">
-            AgentNet provides a structured API for searching people and businesses in Tuscaloosa.
-            Public endpoints allow unauthenticated read access with rate limits.
-            Agent endpoints require API keys with scoped permissions.
+            AgentNet is a normalized action layer between AI agents and businesses.
+            Businesses register capabilities and endpoints. The platform exposes a
+            single standardized API that agents use. Agents never interact with
+            business APIs directly.
           </p>
-        </section>
-
-        {/* Auth */}
-        <section>
-          <h2 className="text-xl font-semibold mb-3">Authentication</h2>
-          <div className="bg-gray-50 rounded-lg p-4 text-sm">
-            <p className="text-gray-600 mb-2"><strong>Public endpoints:</strong> No auth required (30 req/min rate limit)</p>
-            <p className="text-gray-600 mb-2"><strong>Agent endpoints:</strong> API key via Authorization header</p>
-            <code className="block bg-gray-900 text-green-400 p-3 rounded mt-2 text-xs">
-              Authorization: Bearer agn_your_api_key_here
-            </code>
+          <div className="bg-gray-50 rounded-lg p-4 mt-3 text-sm text-gray-600 font-mono">
+            Agent → Platform API → Action Adapter → Business Endpoint
           </div>
         </section>
 
-        {/* Public Endpoints */}
+        {/* Chat API */}
         <section>
-          <h2 className="text-xl font-semibold mb-3">Public Endpoints</h2>
-          <div className="space-y-4">
-            <EndpointDoc
-              method="GET"
-              path="/api/search"
-              description="Search across all public profiles"
-              params={[
-                { name: "q", desc: "Search query (matches name, bio, skills, services)" },
-                { name: "type", desc: "Filter: 'person' or 'business'" },
-                { name: "status", desc: "Filter: 'available', 'looking_for_work', 'hiring', 'busy'" },
-                { name: "page", desc: "Page number (default: 1)" },
-                { name: "limit", desc: "Results per page (default: 20, max: 50)" },
-              ]}
-              example={`GET /api/search?q=math+tutor&type=person&status=available`}
-            />
-            <EndpointDoc
-              method="GET"
-              path="/api/profiles/:id"
-              description="Get a single public profile by ID"
-              params={[]}
-              example={`GET /api/profiles/abc-123-uuid`}
-            />
-          </div>
+          <h2 className="text-xl font-semibold mb-3">Chat API (GPT-Powered)</h2>
+          <p className="text-gray-600 text-sm mb-3">
+            Send natural language messages and the AI will search, discover, and
+            take actions through the platform API automatically.
+          </p>
+          <EndpointDoc
+            method="POST"
+            path="/api/chat"
+            description="Send messages to the GPT-powered agent. It has MCP access to all platform endpoints."
+            params={[
+              { name: "messages", desc: "Array of {role, content} — conversation history" },
+              { name: "session_id", desc: "Optional session ID for persistence" },
+            ]}
+            example={`curl -X POST http://localhost:3000/api/chat \\
+  -H "Content-Type: application/json" \\
+  -d '{"messages":[{"role":"user","content":"Find me a barber near campus"}]}'`}
+          />
         </section>
 
-        {/* Agent Endpoints */}
+        {/* Search & Discovery */}
         <section>
-          <h2 className="text-xl font-semibold mb-3">Agent Endpoints (API Key Required)</h2>
+          <h2 className="text-xl font-semibold mb-3">Search & Discovery</h2>
           <div className="space-y-4">
             <EndpointDoc
               method="GET"
               path="/api/v1/search"
-              description="Agent search — same params as public search"
-              params={[]}
-              example={`curl -H "Authorization: Bearer agn_xxx" https://agentnet.app/api/v1/search?q=tutor`}
-              scope="read:search"
+              description="Search businesses, people, and services. Returns capabilities and action URLs."
+              params={[
+                { name: "q", desc: "Text query" },
+                { name: "type", desc: "'person' or 'business'" },
+                { name: "status", desc: "'available', 'looking_for_work', 'hiring'" },
+                { name: "capability", desc: "'ordering', 'booking', 'quotes', 'availability'" },
+              ]}
+              example={`GET /api/v1/search?q=barber&type=business&capability=booking`}
             />
             <EndpointDoc
               method="GET"
-              path="/api/v1/profiles/:id"
-              description="Agent profile read"
+              path="/api/v1/profile/:id"
+              description="Full profile with capabilities, services, and available endpoints"
               params={[]}
-              example={`curl -H "Authorization: Bearer agn_xxx" https://agentnet.app/api/v1/profiles/abc-123`}
-              scope="read:profiles"
-            />
-            <EndpointDoc
-              method="POST"
-              path="/api/v1/messages/draft"
-              description="Create a draft message (human must review before sending)"
-              params={[
-                { name: "recipientId", desc: "Target user ID (required)" },
-                { name: "subject", desc: "Message subject (required)" },
-                { name: "body", desc: "Message body (required)" },
-              ]}
-              example={`curl -X POST -H "Authorization: Bearer agn_xxx" -H "Content-Type: application/json" -d '{"recipientId":"user-123","subject":"Tutoring inquiry","body":"Are you available?"}' https://agentnet.app/api/v1/messages/draft`}
-              scope="write:messages.draft"
+              example={`GET /api/v1/profile/abc-123`}
             />
           </div>
         </section>
 
-        {/* Scopes */}
+        {/* Info System */}
         <section>
-          <h2 className="text-xl font-semibold mb-3">API Key Scopes</h2>
+          <h2 className="text-xl font-semibold mb-3">Indexable Info System</h2>
+          <p className="text-gray-600 text-sm mb-3">
+            Businesses expose structured data sections (menu, services, hours, etc.)
+            navigable like a webpage hierarchy.
+          </p>
+          <div className="space-y-4">
+            <EndpointDoc
+              method="GET"
+              path="/api/v1/info/:business_id"
+              description="List all info sections for a business"
+              params={[]}
+              example={`GET /api/v1/info/rest_123`}
+            />
+            <EndpointDoc
+              method="GET"
+              path="/api/v1/info/:business_id/:section"
+              description="Get specific section data"
+              params={[]}
+              example={`GET /api/v1/info/rest_123/menu
+# Response: {"items":[{"id":"chicken_breast","name":"Chicken Breast","price":6.99}]}`}
+            />
+          </div>
+        </section>
+
+        {/* Action Endpoints */}
+        <section>
+          <h2 className="text-xl font-semibold mb-3">Action Endpoints</h2>
+          <p className="text-gray-600 text-sm mb-3">
+            Standardized endpoints for agent actions. The platform routes them through
+            the appropriate adapter (local DB or external business API).
+          </p>
+          <div className="space-y-4">
+            <EndpointDoc
+              method="GET"
+              path="/api/v1/availability"
+              description="Check available time slots"
+              params={[
+                { name: "business_id", desc: "Business profile ID (required)" },
+                { name: "date", desc: "YYYY-MM-DD (required)" },
+                { name: "service", desc: "Service name (optional)" },
+              ]}
+              example={`GET /api/v1/availability?business_id=barber_22&date=2026-04-04&service=haircut`}
+            />
+            <EndpointDoc
+              method="POST"
+              path="/api/v1/book"
+              description="Book an appointment"
+              params={[
+                { name: "business_id", desc: "Business profile ID" },
+                { name: "service", desc: "Service name" },
+                { name: "time", desc: "ISO datetime" },
+              ]}
+              example={`POST /api/v1/book
+{"business_id":"barber_22","service":"haircut","time":"2026-04-04T15:00"}`}
+            />
+            <EndpointDoc
+              method="POST"
+              path="/api/v1/order"
+              description="Place an order"
+              params={[
+                { name: "business_id", desc: "Business profile ID" },
+                { name: "items", desc: "Array of {id, qty}" },
+                { name: "pickup_time", desc: "HH:MM" },
+              ]}
+              example={`POST /api/v1/order
+{"business_id":"rest_123","items":[{"id":"chicken_breast","qty":2}],"pickup_time":"18:30"}`}
+            />
+            <EndpointDoc
+              method="POST"
+              path="/api/v1/message"
+              description="Send a message"
+              params={[
+                { name: "recipient_id", desc: "User or profile ID" },
+                { name: "message", desc: "Message text" },
+                { name: "subject", desc: "Subject line" },
+              ]}
+              example={`POST /api/v1/message
+{"recipient_id":"user_21","message":"Are you available for tutoring?"}`}
+            />
+            <EndpointDoc
+              method="POST"
+              path="/api/v1/request_service"
+              description="Request a service from a provider"
+              params={[
+                { name: "provider_id", desc: "Provider profile ID" },
+                { name: "service", desc: "Service name" },
+                { name: "time_preference", desc: "Preferred time" },
+              ]}
+              example={`POST /api/v1/request_service
+{"provider_id":"user_921","service":"math tutoring","time_preference":"evening"}`}
+            />
+            <EndpointDoc
+              method="POST"
+              path="/api/v1/get_quote"
+              description="Request a price quote"
+              params={[
+                { name: "business_id", desc: "Business profile ID" },
+                { name: "service", desc: "Service name" },
+                { name: "details", desc: "Freeform details object" },
+              ]}
+              example={`POST /api/v1/get_quote
+{"business_id":"svc_22","service":"lawn mowing","details":{"yard_size":"0.25 acre"}}`}
+            />
+          </div>
+        </section>
+
+        {/* Onboarding */}
+        <section>
+          <h2 className="text-xl font-semibold mb-3">Business Onboarding</h2>
+          <EndpointDoc
+            method="POST"
+            path="/api/v1/business/onboard"
+            description="Register or update a business profile with capabilities, endpoints, and info"
+            params={[
+              { name: "name", desc: "Business name (required)" },
+              { name: "capabilities", desc: "Array: ordering, booking, messaging, etc." },
+              { name: "endpoints", desc: "Object mapping action → external URL" },
+              { name: "info_sections", desc: "Object mapping section → data" },
+            ]}
+            example={`POST /api/v1/business/onboard
+{"name":"Tuscaloosa Barber","capabilities":["booking","availability","quotes"],
+ "info_sections":{"services":{"services":[{"name":"Haircut","price":25}]}}}`}
+            scope="Requires session auth"
+          />
+        </section>
+
+        {/* Capabilities */}
+        <section>
+          <h2 className="text-xl font-semibold mb-3">Capabilities</h2>
           <div className="bg-gray-50 rounded-lg overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left p-3 font-medium text-gray-700">Scope</th>
-                  <th className="text-left p-3 font-medium text-gray-700">Access</th>
+                  <th className="text-left p-3 font-medium text-gray-700">Capability</th>
+                  <th className="text-left p-3 font-medium text-gray-700">Action Endpoint</th>
+                  <th className="text-left p-3 font-medium text-gray-700">Example</th>
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b border-gray-100">
-                  <td className="p-3"><code className="text-xs bg-gray-200 px-2 py-0.5 rounded">read:search</code></td>
-                  <td className="p-3 text-gray-600">Search profiles and listings</td>
-                </tr>
-                <tr className="border-b border-gray-100">
-                  <td className="p-3"><code className="text-xs bg-gray-200 px-2 py-0.5 rounded">read:profiles</code></td>
-                  <td className="p-3 text-gray-600">Read individual profile details</td>
-                </tr>
-                <tr>
-                  <td className="p-3"><code className="text-xs bg-gray-200 px-2 py-0.5 rounded">write:messages.draft</code></td>
-                  <td className="p-3 text-gray-600">Create draft messages (human review required)</td>
-                </tr>
+                {[
+                  ["ordering", "POST /api/v1/order", "Place food orders"],
+                  ["booking", "POST /api/v1/book", "Book appointments"],
+                  ["availability", "GET /api/v1/availability", "Check time slots"],
+                  ["quotes", "POST /api/v1/get_quote", "Get price estimates"],
+                  ["service_requests", "POST /api/v1/request_service", "Request services"],
+                  ["messaging", "POST /api/v1/message", "Send messages"],
+                ].map(([cap, endpoint, desc]) => (
+                  <tr key={cap} className="border-b border-gray-100">
+                    <td className="p-3"><code className="text-xs bg-gray-200 px-2 py-0.5 rounded">{cap}</code></td>
+                    <td className="p-3 font-mono text-xs text-gray-700">{endpoint}</td>
+                    <td className="p-3 text-gray-600">{desc}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -122,8 +230,8 @@ export default function DocsPage() {
           <h2 className="text-xl font-semibold mb-3">Rate Limits</h2>
           <ul className="text-sm text-gray-600 space-y-1">
             <li>• Public endpoints: 30 requests/minute per IP</li>
-            <li>• Agent endpoints: 60 requests/minute per API key (configurable)</li>
-            <li>• Messaging: 20 messages/hour, 5 first-contacts/day</li>
+            <li>• API key endpoints: 60 requests/minute per key</li>
+            <li>• Chat API: 20 messages/minute per session</li>
           </ul>
         </section>
       </div>
