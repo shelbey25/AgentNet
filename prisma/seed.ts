@@ -12,6 +12,7 @@ async function main() {
   console.log("Seeding AgentNet — Bama Campus MVP...\n");
 
   // Clean in dependency order
+  await prisma.webhookLog.deleteMany();
   await prisma.claimRequest.deleteMany();
   await prisma.connectedAccount.deleteMany();
   await prisma.userMemory.deleteMany();
@@ -35,6 +36,50 @@ async function main() {
   console.log("  Cleared existing data\n");
 
   const pw = await hash("password123", 12);
+  const shelbeyPw = await hash("Born2007!", 12);
+
+  // =====================================================
+  // PLATFORM OWNER — Shelbey
+  // =====================================================
+
+  console.log("Creating platform owner...");
+
+  const shelbey = await prisma.user.create({
+    data: {
+      email: "shelbeyousey@gmail.com",
+      passwordHash: shelbeyPw,
+      name: "Shelbey Ousey",
+      role: "person",
+      profiles: {
+        create: {
+          type: "person",
+          displayName: "Shelbey Ousey",
+          bio: "Computer Science student at the University of Alabama. Building AgentNet — the campus AI platform.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "student",
+          campusRole: "student",
+          department: "Computer Science",
+          tags: ["cs", "ai", "agentnet", "developer", "student"],
+          skills: {
+            create: [
+              { name: "TypeScript", category: "Programming" },
+              { name: "Next.js", category: "Programming" },
+              { name: "AI / LLMs", category: "Technology" },
+              { name: "Full-Stack Development", category: "Programming" },
+            ],
+          },
+          capabilities: {
+            create: [
+              { type: "messaging" },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Shelbey Ousey — " + shelbey.id);
 
   // =====================================================
   // CAMPUS PEOPLE — Professors
@@ -1786,6 +1831,22 @@ async function main() {
   }
 
   // =====================================================
+  // ENABLE WEBHOOKS ON ALL PROFILES
+  // =====================================================
+
+  const WEBHOOK_URL = "https://primary-production-bbd3.up.railway.app/webhook/88f8fef2-0ecf-417c-9979-ef80de0a59cc";
+  const ALL_WEBHOOK_EVENTS = ["ordering", "booking", "messaging", "service_requests", "quotes", "availability"];
+
+  const webhookResult = await prisma.profile.updateMany({
+    data: {
+      webhookUrl: WEBHOOK_URL,
+      webhookEnabled: true,
+      enabledWebhookEvents: ALL_WEBHOOK_EVENTS,
+    },
+  });
+  console.log(`\n  Webhooks enabled on ${webhookResult.count} profiles → ${WEBHOOK_URL}`);
+
+  // =====================================================
   // SUMMARY
   // =====================================================
 
@@ -1799,6 +1860,7 @@ async function main() {
   console.log("AgentNet Bama Campus MVP — Seeded!");
   console.log("");
   console.log("  Profiles:      " + profileCount);
+  console.log("    Shelbey:     1 (platform owner)");
   console.log("    Professors:  3");
   console.log("    Advisors:    2");
   console.log("    Tutors:      3");
@@ -1812,7 +1874,9 @@ async function main() {
   console.log("  Skills:        " + skillCount);
   console.log("  Info Sections: " + infoCount);
   console.log("");
-  console.log("  All passwords: password123");
+  console.log("  Webhooks:      ALL profiles → n8n webhook");
+  console.log("  Shelbey login: shelbeyousey@gmail.com / Born2007!");
+  console.log("  Other logins:  password123");
   console.log("=============================================");
 }
 
