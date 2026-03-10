@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Message {
   role: "user" | "assistant";
@@ -149,8 +151,10 @@ export default function Home() {
               >
                 {msg.role === "assistant" ? (
                   <div className="space-y-2">
-                    <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                      {msg.content}
+                    <div className="prose prose-sm prose-gray max-w-none [&>h1]:text-lg [&>h1]:font-bold [&>h1]:mt-3 [&>h1]:mb-1 [&>h2]:text-base [&>h2]:font-bold [&>h2]:mt-3 [&>h2]:mb-1 [&>h3]:text-sm [&>h3]:font-semibold [&>h3]:mt-2 [&>h3]:mb-1 [&>p]:my-1.5 [&>p]:leading-relaxed [&>ul]:my-1.5 [&>ul]:pl-4 [&>ol]:my-1.5 [&>ol]:pl-4 [&>li]:my-0.5 [&>li]:leading-relaxed [&_strong]:font-semibold [&>hr]:my-2 [&>blockquote]:border-l-2 [&>blockquote]:border-indigo-300 [&>blockquote]:pl-3 [&>blockquote]:italic [&>blockquote]:text-gray-600 [&>pre]:bg-gray-50 [&>pre]:rounded-lg [&>pre]:p-3 [&>pre]:text-xs [&>pre]:overflow-x-auto [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&>pre_code]:bg-transparent [&>pre_code]:p-0 [&>a]:text-indigo-600 [&>a]:underline [&>a]:hover:text-indigo-800">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {msg.content}
+                      </ReactMarkdown>
                     </div>
                     {msg.toolCalls && msg.toolCalls.length > 0 && (
                       <div className="border-t border-gray-100 pt-2 mt-2">
