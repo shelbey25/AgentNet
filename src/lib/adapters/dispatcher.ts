@@ -3,7 +3,7 @@
 // Priority: external endpoint + named adapter → external endpoint + generic REST → local handler
 
 import { prisma } from "@/lib/db";
-import { Prisma } from "@prisma/client";
+import { Prisma, CapabilityType } from "@prisma/client";
 import { AdapterResponse, getAdapter } from "./base";
 import { genericRestAdapter } from "./generic-rest";
 import {
@@ -38,7 +38,7 @@ export async function dispatchAction(
   const requiredCapability = ACTION_TO_CAPABILITY[action];
   if (requiredCapability) {
     const cap = await prisma.capability.findFirst({
-      where: { profileId, type: requiredCapability as never, isActive: true },
+      where: { profileId, type: requiredCapability as CapabilityType, isActive: true },
     });
     if (!cap) {
       return {

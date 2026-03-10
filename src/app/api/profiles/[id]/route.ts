@@ -45,12 +45,27 @@ export async function GET(
       category: s.category,
       price: s.price,
     })),
-    // Business fields
-    ...(profile.type === "business" && {
+    // Business/site fields
+    ...((profile.type === "business" || profile.type === "site") && {
       phone: profile.phone,
       website: profile.website,
       address: profile.address,
       hours: profile.hours,
+    }),
+    // Campus person fields
+    ...(profile.campusRole && { campus_role: profile.campusRole }),
+    ...(profile.department && { department: profile.department }),
+    ...(profile.title && { title: profile.title }),
+    ...(profile.officeLocation && { office_location: profile.officeLocation }),
+    ...(profile.officeHours && { office_hours: profile.officeHours }),
+    ...(profile.tags && profile.tags.length > 0 && { tags: profile.tags }),
+    // Opportunity fields
+    ...(profile.type === "opportunity" && {
+      opportunity_type: profile.opportunityType,
+      deadline: profile.deadline,
+      eligibility: profile.eligibility,
+      apply_url: profile.applyUrl,
+      compensation: profile.compensation,
     }),
     createdAt: profile.createdAt,
   });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/db";
+import type { EntityType } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,6 +24,8 @@ export async function POST(request: NextRequest) {
 
     const validRoles = ["person", "business"];
     const userRole = validRoles.includes(role) ? role : "person";
+    // Map user role to entity type (person → person, business → business)
+    const entityType = userRole as EntityType;
 
     // Check if email already exists
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -44,7 +47,7 @@ export async function POST(request: NextRequest) {
         role: userRole,
         profile: {
           create: {
-            type: userRole,
+            type: entityType,
             displayName: name,
             location: "Tuscaloosa, AL",
           },

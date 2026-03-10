@@ -45,6 +45,23 @@ export async function GET(
     status: profile.status,
     integration_type: profile.integrationType,
     payment_mode: profile.paymentMode,
+    // Campus fields
+    ...(profile.campusRole && { campus_role: profile.campusRole }),
+    ...(profile.department && { department: profile.department }),
+    ...(profile.title && { title: profile.title }),
+    ...(profile.tags && profile.tags.length > 0 && { tags: profile.tags }),
+    ...(profile.officeLocation && { office_location: profile.officeLocation }),
+    ...(profile.officeHours && { office_hours: profile.officeHours }),
+    // Opportunity fields
+    ...(profile.type === "opportunity" && {
+      opportunity_type: profile.opportunityType,
+      deadline: profile.deadline?.toISOString(),
+      eligibility: profile.eligibility,
+      apply_url: profile.applyUrl,
+      compensation: profile.compensation,
+    }),
+    // Claim status
+    ...(profile.isClaimable && { is_claimable: true }),
     capabilities: profile.capabilities.map((c) => c.type),
     skills: profile.skills.map((s) => ({
       name: s.name,
@@ -59,7 +76,7 @@ export async function GET(
       duration: s.duration,
       bookable: s.isBookable,
     })),
-    ...(profile.type === "business" && {
+    ...(["business", "site"].includes(profile.type) && {
       phone: profile.phone,
       website: profile.website,
       address: profile.address,

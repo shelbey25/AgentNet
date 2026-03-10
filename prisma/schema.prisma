@@ -1,5 +1,6 @@
 // AgentNet Platform Schema
-// Normalized action layer between AI agents and businesses
+// Normalized action layer between AI agents, campus entities, and businesses
+// Bama-first campus MVP — University of Alabama
 // PostgreSQL + Prisma
 
 generator client {
@@ -17,6 +18,33 @@ enum UserRole {
   person
   business
   admin
+}
+
+// Entity types for profiles (what the profile represents)
+enum EntityType {
+  person       // professors, students, tutors, advisors
+  business     // local businesses (barbershops, restaurants, etc.)
+  site         // dining halls, libraries, rec centers, buildings
+  opportunity  // research positions, internships, scholarships, jobs
+}
+
+enum CampusRole {
+  student
+  professor
+  advisor
+  tutor
+  staff
+  alumni
+  researcher
+}
+
+enum OpportunityType {
+  research
+  internship
+  scholarship
+  job
+  volunteer
+  club
 }
 
 enum ProfileStatus {
@@ -98,37 +126,63 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  profile          Profile?
-  sentMessages     Message[]        @relation("SentMessages")
-  receivedMessages Message[]        @relation("ReceivedMessages")
-  apiKeys          ApiKey[]
-  messageSettings  MessageSettings?
-  chatSessions     ChatSession[]
+  profile            Profile?
+  sentMessages       Message[]          @relation("SentMessages")
+  receivedMessages   Message[]          @relation("ReceivedMessages")
+  apiKeys            ApiKey[]
+  messageSettings    MessageSettings?
+  chatSessions       ChatSession[]
+  memories           UserMemory[]
+  connectedAccounts  ConnectedAccount[]
+  claimRequests      ClaimRequest[]
 
   @@map("users")
 }
 
 // ─── PROFILES ──────────────────────────────────────────
+// Universal entity: person, business, site, or opportunity
 
 model Profile {
   id          String        @id @default(uuid())
   userId      String        @unique
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        UserRole
+  type        EntityType
   displayName String
   bio         String?
   location    String        @default("Tuscaloosa, AL")
   avatarUrl   String?
   status      ProfileStatus @default(available)
   isPublic    Boolean       @default(true)
-  // Business-specific
+
+  // ─── Shared fields
   category        String?
   phone           String?
   website         String?
   address         String?
   hours           String?
+  tags            String[]    @default([])
+
+  // ─── Business-specific
   integrationType IntegrationType @default(manual)
   paymentMode     PaymentMode     @default(unsupported)
+
+  // ─── Campus-specific (person entities)
+  campusRole      CampusRole?
+  department      String?
+  title           String?         // "Associate Professor", "Academic Advisor"
+  officeLocation  String?         // "Shelby Hall 3218"
+  officeHours     String?         // "Mon/Wed 2-4pm"
+
+  // ─── Opportunity-specific
+  opportunityType OpportunityType?
+  deadline        DateTime?
+  eligibility     String?         // "Juniors and Seniors in CS"
+  applyUrl        String?
+  compensation    String?         // "$15/hr", "Stipend: $2,000/semester"
+
+  // ─── Claim flow
+  isClaimable     Boolean   @default(false)
+  claimedAt       DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -143,11 +197,15 @@ model Profile {
   serviceRequests ServiceRequest[] @relation("BusinessRequests")
   quotes          Quote[]
   actionLogs      ActionLog[]
+  claimRequests   ClaimRequest[]
 
   @@index([status])
   @@index([type])
   @@index([location])
   @@index([category])
+  @@index([department])
+  @@index([campusRole])
+  @@index([opportunityType])
   @@map("profiles")
 }
 
@@ -418,4 +476,64 @@ model ActionLog {
   @@index([action])
   @@index([createdAt])
   @@map("action_logs")
+}
+
+// ─── USER MEMORY ───────────────────────────────────────
+// Stores user preferences & context for personalization
+
+model UserMemory {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String   // "major", "year", "interests", "preferred_dining", "schedule"
+  value     String   // JSON string or plain text
+  source    String   @default("user_stated") // "user_stated", "inferred", "system"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, key])
+  @@index([userId])
+  @@map("user_memories")
+}
+
+// ─── CONNECTED ACCOUNTS ────────────────────────────────
+// Scaffolding for Outlook/Gmail/Canvas integration
+
+model ConnectedAccount {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider     String    // "outlook", "gmail", "canvas", "myBama"
+  accessToken  String?
+  refreshToken String?
+  externalId   String?   // External account identifier
+  scope        String?   // OAuth scopes granted
+  isActive     Boolean   @default(false)
+  connectedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@map("connected_accounts")
+}
+
+// ─── CLAIM REQUESTS ────────────────────────────────────
+// Allows users to claim unclaimed profiles (e.g., professor claims their pre-seeded profile)
+
+model ClaimRequest {
+  id        String   @id @default(uuid())
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  status    String   @default("pending") // "pending", "approved", "rejected"
+  evidence  String?  // e.g., ".edu email match", "admin approved"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([profileId, userId])
+  @@index([profileId])
+  @@index([userId])
+  @@map("claim_requests")
 }

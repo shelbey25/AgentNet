@@ -18,6 +18,17 @@ interface Profile {
   website?: string;
   address?: string;
   hours?: string;
+  campus_role?: string;
+  department?: string;
+  title?: string;
+  office_location?: string;
+  office_hours?: string;
+  tags?: string[];
+  opportunity_type?: string;
+  deadline?: string;
+  eligibility?: string;
+  apply_url?: string;
+  compensation?: string;
   skills: { id: string; name: string; category: string | null }[];
   services: { id: string; name: string; description: string | null; category: string | null; price: string | null }[];
 }
@@ -67,7 +78,7 @@ export default function ProfilePage() {
         <div className="flex items-start justify-between mb-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <span className="text-3xl">{profile.type === "business" ? "🏪" : "👤"}</span>
+              <span className="text-3xl">{profile.type === "business" ? "🏪" : profile.type === "site" ? "🏢" : profile.type === "opportunity" ? "🎯" : "👤"}</span>
               <h1 className="text-3xl font-bold">{profile.displayName}</h1>
             </div>
             <span className={`inline-block text-xs px-3 py-1 rounded-full ${
@@ -96,8 +107,8 @@ export default function ProfilePage() {
           <p className="text-gray-700 leading-relaxed">{profile.bio}</p>
         )}
 
-        {/* Business info */}
-        {profile.type === "business" && (
+        {/* Business/Site info */}
+        {(profile.type === "business" || profile.type === "site") && (
           <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
             {profile.phone && (
               <div><span className="text-gray-400">Phone:</span> {profile.phone}</div>
@@ -111,6 +122,66 @@ export default function ProfilePage() {
             {profile.hours && (
               <div><span className="text-gray-400">Hours:</span> {profile.hours}</div>
             )}
+          </div>
+        )}
+
+        {/* Campus person info */}
+        {profile.type === "person" && (profile.department || profile.title || profile.campus_role) && (
+          <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
+            {profile.title && (
+              <div><span className="text-gray-400">Title:</span> {profile.title}</div>
+            )}
+            {profile.department && (
+              <div><span className="text-gray-400">Department:</span> {profile.department}</div>
+            )}
+            {profile.campus_role && (
+              <div><span className="text-gray-400">Role:</span> {profile.campus_role}</div>
+            )}
+            {profile.office_location && (
+              <div><span className="text-gray-400">Office:</span> {profile.office_location}</div>
+            )}
+            {profile.office_hours && (
+              <div className="col-span-2"><span className="text-gray-400">Office Hours:</span> {profile.office_hours}</div>
+            )}
+          </div>
+        )}
+
+        {/* Opportunity info */}
+        {profile.type === "opportunity" && (
+          <div className="mt-6 space-y-3 text-sm">
+            <div className="grid grid-cols-2 gap-4">
+              {profile.opportunity_type && (
+                <div><span className="text-gray-400">Type:</span> <span className="capitalize">{profile.opportunity_type}</span></div>
+              )}
+              {profile.department && (
+                <div><span className="text-gray-400">Department:</span> {profile.department}</div>
+              )}
+              {profile.compensation && (
+                <div><span className="text-gray-400">Compensation:</span> {profile.compensation}</div>
+              )}
+              {profile.deadline && (
+                <div><span className="text-gray-400">Deadline:</span> {new Date(profile.deadline).toLocaleDateString()}</div>
+              )}
+            </div>
+            {profile.eligibility && (
+              <div><span className="text-gray-400">Eligibility:</span> {profile.eligibility}</div>
+            )}
+            {profile.apply_url && (
+              <div>
+                <a href={profile.apply_url} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">
+                  Apply Now →
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tags */}
+        {profile.tags && profile.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {profile.tags.map((tag, i) => (
+              <span key={i} className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">{tag}</span>
+            ))}
           </div>
         )}
       </div>

@@ -4,23 +4,47 @@ import {
   checkPublicRateLimit,
   rateLimited,
 } from "@/lib/api-auth";
-import type { CapabilityType, Prisma } from "@prisma/client";
+import type { CapabilityType, EntityType, CampusRole, OpportunityType, Prisma } from "@prisma/client";
 
 // ─── Keyword expansion (synonym map) ───────────────────
 // Maps common user terms to additional search keywords
 const SYNONYMS: Record<string, string[]> = {
+  // ─── Campus & academic
+  professor: ["prof", "faculty", "instructor", "teacher", "lecturer"],
+  prof: ["professor", "faculty", "instructor"],
+  faculty: ["professor", "instructor", "teacher"],
+  advisor: ["advising", "academic advisor", "counselor", "guidance"],
+  advising: ["advisor", "academic", "guidance", "counselor"],
+  tutor: ["tutoring", "math", "science", "writing", "education", "help"],
+  tutoring: ["tutor", "math", "science", "writing", "education", "help"],
+  research: ["lab", "researcher", "study", "publication", "opportunity"],
+  internship: ["intern", "experience", "job", "opportunity", "career"],
+  intern: ["internship", "experience", "opportunity"],
+  scholarship: ["financial aid", "funding", "grant", "award", "money"],
+  dining: ["food", "eat", "cafeteria", "meal", "dining hall", "restaurant"],
+  cafeteria: ["dining", "food", "eat", "meal", "dining hall"],
+  library: ["study", "books", "reserve", "lakeside", "gorgas"],
+  rec: ["recreation", "gym", "fitness", "workout", "exercise"],
+  gym: ["rec", "recreation", "fitness", "workout", "exercise"],
+  office: ["office hours", "meeting", "appointment"],
+  class: ["course", "section", "lecture", "class"],
+  course: ["class", "section", "lecture"],
+  cs: ["computer science", "computing", "programming", "software"],
+  "computer science": ["cs", "computing", "programming", "software"],
+  math: ["mathematics", "calculus", "algebra", "statistics"],
+  engineering: ["engineer", "mechanical", "electrical", "civil"],
+  business: ["management", "finance", "marketing", "culverhouse"],
+  // ─── Local business terms (preserved from v3)
   barber: ["barbershop", "haircut", "fade", "shave", "hair"],
   barbershop: ["barber", "haircut", "fade", "shave", "hair"],
   haircut: ["barber", "barbershop", "hair", "salon", "cuts"],
   salon: ["hair", "haircut", "braids", "stylist", "cosmetologist"],
   hair: ["barber", "barbershop", "salon", "haircut", "braids", "stylist"],
-  food: ["restaurant", "chicken", "coffee", "menu", "order"],
+  food: ["restaurant", "chicken", "coffee", "menu", "order", "dining"],
   restaurant: ["food", "menu", "dine", "takeout", "order"],
   chicken: ["restaurant", "food", "wings", "tenders"],
   coffee: ["cafe", "latte", "espresso", "pastry"],
   cafe: ["coffee", "latte", "espresso"],
-  tutor: ["tutoring", "math", "science", "writing", "education"],
-  tutoring: ["tutor", "math", "science", "writing", "education"],
   auto: ["car", "repair", "mechanic", "oil", "brake"],
   car: ["auto", "repair", "mechanic", "vehicle"],
   mechanic: ["auto", "repair", "car", "brake", "oil"],
@@ -91,15 +115,19 @@ const VALID_CAPABILITIES: Set<string> = new Set([
 // GET /api/v1/search — unified search for agents and frontend
 // Also aliased at /api/v1/search/text
 // Supports keyword search with synonym expansion across all fields
+// Filters: q, type (entity_type), status, capability, category, campus_role, department, opportunity_type
 export async function GET(request: NextRequest) {
   if (!checkPublicRateLimit(request)) return rateLimited();
 
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q") || "";
-  const type = searchParams.get("type");
+  const type = searchParams.get("type") || searchParams.get("entity_type");
   const status = searchParams.get("status");
   const capability = searchParams.get("capability");
   const category = searchParams.get("category");
+  const campusRole = searchParams.get("campus_role");
+  const department = searchParams.get("department");
+  const opportunityType = searchParams.get("opportunity_type");
   const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "20")));
   const offset = (page - 1) * limit;
@@ -107,8 +135,10 @@ export async function GET(request: NextRequest) {
   // ─── Build WHERE ─────────────────────────────────────
   const andConditions: Prisma.ProfileWhereInput[] = [{ isPublic: true }];
 
-  if (type === "person" || type === "business") {
-    andConditions.push({ type });
+  // Entity type filter (person, business, site, opportunity)
+  const VALID_ENTITY_TYPES: Set<string> = new Set(["person", "business", "site", "opportunity"]);
+  if (type && VALID_ENTITY_TYPES.has(type)) {
+    andConditions.push({ type: type as EntityType });
   }
 
   if (status) {
@@ -137,6 +167,26 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  // Campus-specific filters
+  const VALID_CAMPUS_ROLES: Set<string> = new Set(["student", "professor", "advisor", "tutor", "staff", "alumni", "researcher"]);
+  if (campusRole && VALID_CAMPUS_ROLES.has(campusRole)) {
+    andConditions.push({ campusRole: campusRole as CampusRole });
+  }
+
+  if (department) {
+    andConditions.push({
+      OR: [
+        { department: { contains: department, mode: "insensitive" } },
+        { tags: { has: department.toLowerCase() } },
+      ],
+    });
+  }
+
+  const VALID_OPP_TYPES: Set<string> = new Set(["research", "internship", "scholarship", "job", "volunteer", "club"]);
+  if (opportunityType && VALID_OPP_TYPES.has(opportunityType)) {
+    andConditions.push({ opportunityType: opportunityType as OpportunityType });
+  }
+
   // ─── Keyword search with synonym expansion ───────────
   if (q) {
     const searchTerms = buildSearchTerms(q);
@@ -147,6 +197,11 @@ export async function GET(request: NextRequest) {
       { bio: { contains: term, mode: "insensitive" as const } },
       { location: { contains: term, mode: "insensitive" as const } },
       { category: { contains: term, mode: "insensitive" as const } },
+      { department: { contains: term, mode: "insensitive" as const } },
+      { title: { contains: term, mode: "insensitive" as const } },
+      { eligibility: { contains: term, mode: "insensitive" as const } },
+      { compensation: { contains: term, mode: "insensitive" as const } },
+      { tags: { has: term } },
       { skills: { some: { name: { contains: term, mode: "insensitive" as const } } } },
       { skills: { some: { category: { contains: term, mode: "insensitive" as const } } } },
       { services: { some: { name: { contains: term, mode: "insensitive" as const } } } },
@@ -182,6 +237,8 @@ export async function GET(request: NextRequest) {
     let score = 0;
     const name = (p.displayName || "").toLowerCase();
     const bio = (p.bio || "").toLowerCase();
+    const dept = (p.department || "").toLowerCase();
+    const titleStr = (p.title || "").toLowerCase();
 
     // Exact name match = highest
     if (name === queryLower) score += 100;
@@ -193,6 +250,9 @@ export async function GET(request: NextRequest) {
       if (name.includes(w)) score += 20;
       if (bio.includes(w)) score += 5;
       if ((p.category || "").toLowerCase().includes(w)) score += 15;
+      if (dept.includes(w)) score += 15;
+      if (titleStr.includes(w)) score += 10;
+      if (p.tags.some((t: string) => t.toLowerCase().includes(w))) score += 10;
     }
     // Has more capabilities = more useful
     score += p.capabilities.length * 2;
@@ -211,6 +271,24 @@ export async function GET(request: NextRequest) {
       location: p.location,
       status: p.status,
       category: p.category,
+      // Campus fields
+      ...(p.campusRole && { campus_role: p.campusRole }),
+      ...(p.department && { department: p.department }),
+      ...(p.title && { title: p.title }),
+      ...(p.tags.length > 0 && { tags: p.tags }),
+      // Opportunity fields
+      ...(p.type === "opportunity" && {
+        opportunity_type: p.opportunityType,
+        deadline: p.deadline?.toISOString(),
+        eligibility: p.eligibility,
+        apply_url: p.applyUrl,
+        compensation: p.compensation,
+      }),
+      // Site fields
+      ...(p.type === "site" && {
+        address: p.address,
+        hours: p.hours,
+      }),
       capabilities: p.capabilities.map((c: typeof p.capabilities[number]) => c.type),
       skills: p.skills.map((s: typeof p.skills[number]) => s.name),
       services: p.services.map((s: typeof p.services[number]) => ({

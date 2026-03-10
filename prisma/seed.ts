@@ -9,9 +9,12 @@ const adapter = new PrismaPg({
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log("🌱 Seeding AgentNet platform...\n");
+  console.log("Seeding AgentNet — Bama Campus MVP...\n");
 
   // Clean in dependency order
+  await prisma.claimRequest.deleteMany();
+  await prisma.connectedAccount.deleteMany();
+  await prisma.userMemory.deleteMany();
   await prisma.chatMessage.deleteMany();
   await prisma.chatSession.deleteMany();
   await prisma.actionLog.deleteMany();
@@ -29,15 +32,1010 @@ async function main() {
   await prisma.service.deleteMany();
   await prisma.profile.deleteMany();
   await prisma.user.deleteMany();
-  console.log("  Cleared existing data");
+  console.log("  Cleared existing data\n");
 
   const pw = await hash("password123", 12);
 
-  // ═══════════════════════════════════════════════════════
-  // BUSINESSES WITH FULL CAPABILITIES + INFO SECTIONS
-  // ═══════════════════════════════════════════════════════
+  // =====================================================
+  // CAMPUS PEOPLE — Professors
+  // =====================================================
 
-  // ─── Crimson Cuts Barbershop ──────────────────────────
+  console.log("Creating professors...");
+
+  // Dr. Sarah Mitchell — CS Professor
+  const profMitchell = await prisma.user.create({
+    data: {
+      email: "smitchell@ua.edu",
+      passwordHash: pw,
+      name: "Dr. Sarah Mitchell",
+      role: "person",
+      profile: {
+        create: {
+          type: "person",
+          displayName: "Dr. Sarah Mitchell",
+          bio: "Associate Professor of Computer Science. Research focus: machine learning, natural language processing, and AI safety. Teaching CS 403 (AI), CS 201 (Data Structures), and CS 495 (ML Seminar).",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "faculty",
+          campusRole: "professor",
+          department: "Computer Science",
+          title: "Associate Professor",
+          officeLocation: "Shelby Hall 3218",
+          officeHours: "Mon/Wed 2:00-4:00 PM, or by appointment",
+          tags: ["computer-science", "machine-learning", "nlp", "ai", "python"],
+          isClaimable: true,
+          services: {
+            create: [
+              { name: "Office Hours", description: "Drop-in advising for CS 403 and CS 201 students.", category: "Academic", duration: 20, isBookable: true },
+              { name: "Research Meeting", description: "Discussion of ML/NLP research opportunities.", category: "Research", duration: 30, isBookable: true },
+            ],
+          },
+          capabilities: {
+            create: [
+              { type: "booking" },
+              { type: "availability" },
+              { type: "messaging" },
+            ],
+          },
+          infoSections: {
+            create: [
+              {
+                section: "office_hours",
+                title: "Office Hours",
+                data: {
+                  schedule: [
+                    { day: "Monday", start: "14:00", end: "16:00", location: "Shelby Hall 3218" },
+                    { day: "Wednesday", start: "14:00", end: "16:00", location: "Shelby Hall 3218" },
+                  ],
+                  notes: "No appointment needed during posted hours. For other times, book via the platform.",
+                },
+              },
+              {
+                section: "courses",
+                title: "Current Courses",
+                data: {
+                  courses: [
+                    { code: "CS 403", name: "Introduction to Artificial Intelligence", schedule: "MWF 10:00-10:50 AM", location: "Shelby 1103" },
+                    { code: "CS 201", name: "Data Structures & Algorithms", schedule: "TR 2:00-3:15 PM", location: "Shelby 1103" },
+                    { code: "CS 495", name: "Machine Learning Seminar", schedule: "F 3:00-4:30 PM", location: "Shelby 2218" },
+                  ],
+                },
+              },
+              {
+                section: "research",
+                title: "Research Areas",
+                data: {
+                  areas: ["Machine Learning", "Natural Language Processing", "AI Safety", "Responsible AI"],
+                  lab: "UA Intelligent Systems Lab",
+                  current_projects: [
+                    { name: "Bias Detection in LLMs", description: "Developing tools to identify and mitigate bias in large language models." },
+                    { name: "Campus AI Assistant", description: "Building intelligent assistants for university operations." },
+                  ],
+                  publications_url: "https://scholar.google.com/citations?user=example",
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Dr. Sarah Mitchell (CS) — " + profMitchell.id);
+
+  // Dr. James Rivera — Business Professor
+  const profRivera = await prisma.user.create({
+    data: {
+      email: "jrivera@ua.edu",
+      passwordHash: pw,
+      name: "Dr. James Rivera",
+      role: "person",
+      profile: {
+        create: {
+          type: "person",
+          displayName: "Dr. James Rivera",
+          bio: "Professor of Finance at Culverhouse College of Business. Specializes in corporate finance, investment analysis, and fintech. Advisor for the Student Investment Fund.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "faculty",
+          campusRole: "professor",
+          department: "Finance",
+          title: "Professor of Finance",
+          officeLocation: "Bidgood Hall 326",
+          officeHours: "Tue/Thu 10:00 AM-12:00 PM",
+          tags: ["finance", "business", "investing", "fintech", "culverhouse"],
+          isClaimable: true,
+          services: {
+            create: [
+              { name: "Office Hours", description: "Open advising for FI 302 and FI 410 students.", category: "Academic", duration: 15, isBookable: true },
+              { name: "Career Advising", description: "Finance career guidance and grad school advice.", category: "Career", duration: 20, isBookable: true },
+            ],
+          },
+          capabilities: {
+            create: [
+              { type: "booking" },
+              { type: "availability" },
+              { type: "messaging" },
+            ],
+          },
+          infoSections: {
+            create: [
+              {
+                section: "office_hours",
+                title: "Office Hours",
+                data: {
+                  schedule: [
+                    { day: "Tuesday", start: "10:00", end: "12:00", location: "Bidgood Hall 326" },
+                    { day: "Thursday", start: "10:00", end: "12:00", location: "Bidgood Hall 326" },
+                  ],
+                },
+              },
+              {
+                section: "courses",
+                title: "Current Courses",
+                data: {
+                  courses: [
+                    { code: "FI 302", name: "Corporate Finance", schedule: "MWF 11:00-11:50 AM", location: "Bidgood 130" },
+                    { code: "FI 410", name: "Investment Analysis", schedule: "TR 3:30-4:45 PM", location: "Bidgood 250" },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Dr. James Rivera (Finance) — " + profRivera.id);
+
+  // Dr. Anika Patel — Engineering Professor
+  const profPatel = await prisma.user.create({
+    data: {
+      email: "apatel@ua.edu",
+      passwordHash: pw,
+      name: "Dr. Anika Patel",
+      role: "person",
+      profile: {
+        create: {
+          type: "person",
+          displayName: "Dr. Anika Patel",
+          bio: "Assistant Professor of Mechanical Engineering. Research in robotics, autonomous systems, and biomechanics. Leads the UA Robotics Lab.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "faculty",
+          campusRole: "professor",
+          department: "Mechanical Engineering",
+          title: "Assistant Professor",
+          officeLocation: "Hardaway Hall 208",
+          officeHours: "Mon 1:00-3:00 PM, Fri 10:00 AM-12:00 PM",
+          tags: ["engineering", "robotics", "mechanical", "autonomous-systems", "biomechanics"],
+          isClaimable: true,
+          services: {
+            create: [
+              { name: "Office Hours", description: "Advising for ME 360 and ME 495 students.", category: "Academic", duration: 20, isBookable: true },
+              { name: "Lab Tour", description: "Tour of the UA Robotics Lab for prospective students.", category: "Research", duration: 45, isBookable: true },
+            ],
+          },
+          capabilities: {
+            create: [
+              { type: "booking" },
+              { type: "availability" },
+              { type: "messaging" },
+            ],
+          },
+          infoSections: {
+            create: [
+              {
+                section: "office_hours",
+                title: "Office Hours",
+                data: {
+                  schedule: [
+                    { day: "Monday", start: "13:00", end: "15:00", location: "Hardaway Hall 208" },
+                    { day: "Friday", start: "10:00", end: "12:00", location: "Hardaway Hall 208" },
+                  ],
+                },
+              },
+              {
+                section: "research",
+                title: "Research",
+                data: {
+                  areas: ["Robotics", "Autonomous Systems", "Biomechanics"],
+                  lab: "UA Robotics Lab — Hardaway Hall 110",
+                  current_projects: [
+                    { name: "Soft Robotics for Rehabilitation", description: "Developing compliant robotic devices for physical therapy." },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Dr. Anika Patel (ME) — " + profPatel.id);
+
+  // =====================================================
+  // CAMPUS PEOPLE — Advisors
+  // =====================================================
+
+  console.log("\nCreating advisors...");
+
+  // Lisa Nguyen — Academic Advisor
+  const advisorLisa = await prisma.user.create({
+    data: {
+      email: "lnguyen@ua.edu",
+      passwordHash: pw,
+      name: "Lisa Nguyen",
+      role: "person",
+      profile: {
+        create: {
+          type: "person",
+          displayName: "Lisa Nguyen",
+          bio: "Academic advisor for Computer Science and Data Science majors in the College of Engineering. Helps with course planning, degree audits, and graduation requirements.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "advising",
+          campusRole: "advisor",
+          department: "Computer Science",
+          title: "Academic Advisor",
+          officeLocation: "Houser Hall 127",
+          officeHours: "Mon-Fri 9:00 AM-4:30 PM (by appointment)",
+          tags: ["advising", "computer-science", "data-science", "degree-planning", "engineering"],
+          services: {
+            create: [
+              { name: "Advising Appointment", description: "Course planning, degree audit, or registration help.", category: "Advising", duration: 30, isBookable: true },
+              { name: "Quick Question", description: "Brief check-in for simple questions.", category: "Advising", duration: 10, isBookable: true },
+            ],
+          },
+          capabilities: {
+            create: [
+              { type: "booking" },
+              { type: "availability" },
+              { type: "messaging" },
+              { type: "service_requests" },
+            ],
+          },
+          infoSections: {
+            create: [
+              {
+                section: "services",
+                title: "Advising Services",
+                data: {
+                  services: [
+                    { name: "Course Planning", description: "Help selecting courses for next semester" },
+                    { name: "Degree Audit Review", description: "Review your progress toward graduation" },
+                    { name: "Major/Minor Declaration", description: "Help declaring or changing your major" },
+                    { name: "Graduation Check", description: "Verify you are on track to graduate" },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Lisa Nguyen (CS Advisor) — " + advisorLisa.id);
+
+  // Marcus Thompson — Career Advisor
+  const advisorMarcus = await prisma.user.create({
+    data: {
+      email: "mthompson@ua.edu",
+      passwordHash: pw,
+      name: "Marcus Thompson",
+      role: "person",
+      profile: {
+        create: {
+          type: "person",
+          displayName: "Marcus Thompson",
+          bio: "Career counselor at the UA Career Center. Specializes in resume reviews, interview prep, and connecting students with internships and employers. Former recruiter at a Fortune 500 company.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "career",
+          campusRole: "advisor",
+          department: "Career Center",
+          title: "Senior Career Counselor",
+          officeLocation: "Student Services Center 200",
+          officeHours: "Mon-Thu 9:00 AM-5:00 PM, Fri 9:00 AM-3:00 PM",
+          tags: ["career", "resume", "interview", "internship", "jobs", "networking"],
+          services: {
+            create: [
+              { name: "Resume Review", description: "Get feedback on your resume from a career professional.", category: "Career", duration: 30, isBookable: true },
+              { name: "Mock Interview", description: "Practice interviews with professional feedback.", category: "Career", duration: 45, isBookable: true },
+              { name: "Career Coaching", description: "Explore career paths and job search strategies.", category: "Career", duration: 30, isBookable: true },
+            ],
+          },
+          capabilities: {
+            create: [
+              { type: "booking" },
+              { type: "availability" },
+              { type: "messaging" },
+              { type: "service_requests" },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Marcus Thompson (Career Advisor) — " + advisorMarcus.id);
+
+  // =====================================================
+  // CAMPUS PEOPLE — Student Tutors
+  // =====================================================
+
+  console.log("\nCreating student tutors...");
+
+  // Jordan Williams — CS/Math Tutor
+  const tutorJordan = await prisma.user.create({
+    data: {
+      email: "jwilliams@crimson.ua.edu",
+      passwordHash: pw,
+      name: "Jordan Williams",
+      role: "person",
+      profile: {
+        create: {
+          type: "person",
+          displayName: "Jordan Williams",
+          bio: "Junior CS major and peer tutor. Available for CS 100/101/201, Calculus I/II, and Discrete Math. 3.9 GPA. ACM club member.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "tutoring",
+          campusRole: "tutor",
+          department: "Computer Science",
+          title: "Peer Tutor",
+          tags: ["tutoring", "computer-science", "math", "calculus", "programming", "python", "java"],
+          skills: {
+            create: [
+              { name: "Python", category: "Programming" },
+              { name: "Java", category: "Programming" },
+              { name: "Data Structures", category: "CS" },
+              { name: "Calculus", category: "Math" },
+              { name: "Discrete Math", category: "Math" },
+            ],
+          },
+          services: {
+            create: [
+              { name: "CS Tutoring", description: "Help with CS 100, 101, 201 — Python and Java.", category: "Tutoring", price: "$20/hr", duration: 60, isBookable: true },
+              { name: "Math Tutoring", description: "Calculus I, II, and Discrete Math.", category: "Tutoring", price: "$20/hr", duration: 60, isBookable: true },
+              { name: "Code Review", description: "Review and debug your programming assignments.", category: "Tutoring", price: "$15/session", duration: 30, isBookable: true },
+            ],
+          },
+          capabilities: {
+            create: [
+              { type: "booking" },
+              { type: "availability" },
+              { type: "messaging" },
+              { type: "quotes" },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Jordan Williams (CS/Math Tutor) — " + tutorJordan.id);
+
+  // Maya Chen — Writing/English Tutor
+  const tutorMaya = await prisma.user.create({
+    data: {
+      email: "mchen@crimson.ua.edu",
+      passwordHash: pw,
+      name: "Maya Chen",
+      role: "person",
+      profile: {
+        create: {
+          type: "person",
+          displayName: "Maya Chen",
+          bio: "Senior English major and Writing Center tutor. I help with essays, research papers, lab reports, and personal statements. Any subject, any level.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "tutoring",
+          campusRole: "tutor",
+          department: "English",
+          title: "Writing Center Tutor",
+          tags: ["writing", "english", "essays", "research-papers", "grammar", "editing"],
+          skills: {
+            create: [
+              { name: "Academic Writing", category: "Writing" },
+              { name: "Research Papers", category: "Writing" },
+              { name: "Essay Editing", category: "Writing" },
+              { name: "APA/MLA Citation", category: "Writing" },
+            ],
+          },
+          services: {
+            create: [
+              { name: "Writing Tutoring", description: "Help with essays, papers, and written assignments.", category: "Tutoring", price: "$18/hr", duration: 60, isBookable: true },
+              { name: "Paper Review", description: "Detailed feedback on a draft before submission.", category: "Tutoring", price: "$25/paper", duration: 45, isBookable: true },
+            ],
+          },
+          capabilities: {
+            create: [
+              { type: "booking" },
+              { type: "availability" },
+              { type: "messaging" },
+              { type: "quotes" },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Maya Chen (Writing Tutor) — " + tutorMaya.id);
+
+  // Derek Brown — Chemistry/Biology Tutor
+  const tutorDerek = await prisma.user.create({
+    data: {
+      email: "dbrown@crimson.ua.edu",
+      passwordHash: pw,
+      name: "Derek Brown",
+      role: "person",
+      profile: {
+        create: {
+          type: "person",
+          displayName: "Derek Brown",
+          bio: "Pre-med junior tutoring in Chemistry, Biology, and Organic Chemistry. Study group organizer. MCAT score: 520.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "tutoring",
+          campusRole: "tutor",
+          department: "Chemistry",
+          title: "Peer Tutor",
+          tags: ["chemistry", "biology", "organic-chemistry", "pre-med", "science", "mcat"],
+          skills: {
+            create: [
+              { name: "General Chemistry", category: "Science" },
+              { name: "Organic Chemistry", category: "Science" },
+              { name: "Biology", category: "Science" },
+              { name: "MCAT Prep", category: "Test Prep" },
+            ],
+          },
+          services: {
+            create: [
+              { name: "Chemistry Tutoring", description: "CH 101/102, Organic Chemistry I/II.", category: "Tutoring", price: "$22/hr", duration: 60, isBookable: true },
+              { name: "Biology Tutoring", description: "BSC 108, BSC 114, Microbiology.", category: "Tutoring", price: "$22/hr", duration: 60, isBookable: true },
+              { name: "Study Group Session", description: "Lead study group (2-5 students).", category: "Tutoring", price: "$10/person/hr", duration: 90, isBookable: true },
+            ],
+          },
+          capabilities: {
+            create: [
+              { type: "booking" },
+              { type: "availability" },
+              { type: "messaging" },
+              { type: "quotes" },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Derek Brown (Science Tutor) — " + tutorDerek.id);
+
+  // =====================================================
+  // CAMPUS SITES — Dining Halls
+  // =====================================================
+
+  console.log("\nCreating dining sites...");
+
+  // Lakeside Dining Hall
+  const lakeside = await prisma.user.create({
+    data: {
+      email: "lakeside@dining.ua.edu",
+      passwordHash: pw,
+      name: "Lakeside Dining",
+      role: "business",
+      profile: {
+        create: {
+          type: "site",
+          displayName: "Lakeside Dining Hall",
+          bio: "All-you-can-eat dining hall beside the lake. Features rotating stations: grill, pizza, salad bar, comfort food, international, and desserts. Accepts Dining Dollars and Bama Cash.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "dining",
+          address: "500 Margaret Dr, Tuscaloosa, AL 35401",
+          hours: "Mon-Fri 7am-9pm, Sat-Sun 10am-8pm",
+          phone: "(205) 348-6847",
+          tags: ["dining", "cafeteria", "meal-plan", "all-you-can-eat", "lakeside"],
+          integrationType: "manual",
+          paymentMode: "pay_on_pickup",
+          capabilities: {
+            create: [
+              { type: "ordering" },
+              { type: "messaging" },
+            ],
+          },
+          infoSections: {
+            create: [
+              {
+                section: "menu",
+                title: "Today's Menu",
+                data: {
+                  items: [
+                    { id: "grilled_chicken", name: "Grilled Chicken Breast", price: 0, station: "Grill", description: "Included with meal plan" },
+                    { id: "cheese_pizza", name: "Cheese Pizza", price: 0, station: "Pizza", description: "Fresh baked" },
+                    { id: "pepperoni_pizza", name: "Pepperoni Pizza", price: 0, station: "Pizza" },
+                    { id: "caesar_salad", name: "Caesar Salad", price: 0, station: "Salad Bar" },
+                    { id: "pasta_marinara", name: "Pasta Marinara", price: 0, station: "Comfort", description: "With garlic bread" },
+                    { id: "stir_fry", name: "Vegetable Stir Fry", price: 0, station: "International" },
+                    { id: "burger", name: "Cheeseburger", price: 0, station: "Grill", description: "1/4 lb patty with toppings" },
+                    { id: "chicken_tenders", name: "Chicken Tenders", price: 0, station: "Grill" },
+                    { id: "brownie", name: "Fudge Brownie", price: 0, station: "Dessert" },
+                  ],
+                  note: "Menu rotates daily. All items included with meal plan swipe ($9.50 guest price).",
+                },
+              },
+              {
+                section: "hours",
+                title: "Operating Hours",
+                data: {
+                  hours: [
+                    { day: "Monday-Friday", meals: { breakfast: "7:00-10:00 AM", lunch: "11:00 AM-2:00 PM", dinner: "5:00-9:00 PM" } },
+                    { day: "Saturday-Sunday", meals: { brunch: "10:00 AM-2:00 PM", dinner: "5:00-8:00 PM" } },
+                  ],
+                },
+              },
+              {
+                section: "location",
+                title: "Location",
+                data: {
+                  address: "500 Margaret Dr",
+                  building: "Lakeside",
+                  nearest_parking: "Lakeside Parking Deck",
+                  accepts: ["Dining Dollars", "Bama Cash", "Credit/Debit"],
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Lakeside Dining Hall — " + lakeside.id);
+
+  // Fresh Food Company (Burke Dining)
+  const burke = await prisma.user.create({
+    data: {
+      email: "freshfood@dining.ua.edu",
+      passwordHash: pw,
+      name: "Fresh Food Company",
+      role: "business",
+      profile: {
+        create: {
+          type: "site",
+          displayName: "Fresh Food Company (Burke)",
+          bio: "Dining hall in Burke Hall East. Known for made-to-order omelets, brick-oven pizza, and the fresh salad bar. Popular with West Campus residents.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "dining",
+          address: "851 Hackberry Lane, Tuscaloosa, AL 35401",
+          hours: "Mon-Fri 7am-9pm, Sat-Sun 10am-8pm",
+          tags: ["dining", "cafeteria", "meal-plan", "burke", "west-campus"],
+          integrationType: "manual",
+          paymentMode: "pay_on_pickup",
+          capabilities: {
+            create: [
+              { type: "ordering" },
+              { type: "messaging" },
+            ],
+          },
+          infoSections: {
+            create: [
+              {
+                section: "menu",
+                title: "Today's Menu",
+                data: {
+                  items: [
+                    { id: "omelet", name: "Made-to-Order Omelet", price: 0, station: "Breakfast", description: "Choose your fillings" },
+                    { id: "brick_pizza", name: "Brick Oven Margherita", price: 0, station: "Pizza" },
+                    { id: "bbq_chicken", name: "BBQ Chicken", price: 0, station: "Southern", description: "With cornbread" },
+                    { id: "garden_salad", name: "Garden Salad Bar", price: 0, station: "Salad" },
+                    { id: "tacos", name: "Chicken Tacos", price: 0, station: "Tex-Mex" },
+                    { id: "soup", name: "Soup of the Day", price: 0, station: "Comfort" },
+                  ],
+                  note: "Meal plan swipe or $9.50 guest price.",
+                },
+              },
+              {
+                section: "hours",
+                title: "Operating Hours",
+                data: {
+                  hours: [
+                    { day: "Monday-Friday", meals: { breakfast: "7:00-10:00 AM", lunch: "11:00 AM-2:00 PM", dinner: "5:00-9:00 PM" } },
+                    { day: "Saturday-Sunday", meals: { brunch: "10:00 AM-2:00 PM", dinner: "5:00-8:00 PM" } },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Fresh Food Company (Burke) — " + burke.id);
+
+  // =====================================================
+  // CAMPUS SITES — Library & Rec
+  // =====================================================
+
+  console.log("\nCreating campus sites...");
+
+  // Gorgas Library
+  const gorgas = await prisma.user.create({
+    data: {
+      email: "gorgas@lib.ua.edu",
+      passwordHash: pw,
+      name: "Gorgas Library",
+      role: "business",
+      profile: {
+        create: {
+          type: "site",
+          displayName: "Gorgas Library",
+          bio: "The University of Alabama's main library. Study rooms, computer labs, research databases, printing services, and the Sanford Media Center. Open late during finals.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "library",
+          address: "501 University Blvd, Tuscaloosa, AL 35401",
+          hours: "Mon-Thu 7am-2am, Fri 7am-6pm, Sat 10am-6pm, Sun 12pm-2am",
+          phone: "(205) 348-6047",
+          website: "https://lib.ua.edu",
+          tags: ["library", "study", "research", "computers", "printing", "study-rooms"],
+          capabilities: {
+            create: [
+              { type: "booking" },
+              { type: "availability" },
+              { type: "messaging" },
+            ],
+          },
+          services: {
+            create: [
+              { name: "Study Room Reservation", description: "Reserve a group study room (2-8 people).", category: "Library", duration: 120, isBookable: true },
+              { name: "Research Consultation", description: "Get help from a research librarian.", category: "Library", duration: 30, isBookable: true },
+            ],
+          },
+          infoSections: {
+            create: [
+              {
+                section: "hours",
+                title: "Library Hours",
+                data: {
+                  hours: [
+                    { day: "Monday-Thursday", open: "7:00 AM", close: "2:00 AM" },
+                    { day: "Friday", open: "7:00 AM", close: "6:00 PM" },
+                    { day: "Saturday", open: "10:00 AM", close: "6:00 PM" },
+                    { day: "Sunday", open: "12:00 PM", close: "2:00 AM" },
+                  ],
+                  finals_hours: "24/7 during finals week",
+                },
+              },
+              {
+                section: "services",
+                title: "Library Services",
+                data: {
+                  services: [
+                    { name: "Study Rooms", description: "20 group study rooms, reserve online", capacity: "2-8 people" },
+                    { name: "Computer Lab", description: "100+ workstations, 1st floor", software: "Microsoft Office, SPSS, MATLAB, Adobe CC" },
+                    { name: "Printing", description: "B&W $0.05/page, Color $0.25/page. Accepts ACTCard." },
+                    { name: "Research Help", description: "Librarians available for 1-on-1 consultations" },
+                    { name: "Interlibrary Loan", description: "Request books/articles from other libraries" },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Gorgas Library — " + gorgas.id);
+
+  // Student Recreation Center
+  const recCenter = await prisma.user.create({
+    data: {
+      email: "rec@ua.edu",
+      passwordHash: pw,
+      name: "Student Recreation Center",
+      role: "business",
+      profile: {
+        create: {
+          type: "site",
+          displayName: "Student Recreation Center",
+          bio: "UA's main fitness facility. Features weight rooms, cardio equipment, indoor pool, basketball/volleyball courts, climbing wall, and group fitness classes. Free for students with valid ACTCard.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "recreation",
+          address: "680 University Blvd, Tuscaloosa, AL 35401",
+          hours: "Mon-Fri 6am-10pm, Sat-Sun 9am-7pm",
+          phone: "(205) 348-1456",
+          website: "https://urec.sa.ua.edu",
+          tags: ["gym", "fitness", "recreation", "swimming", "basketball", "climbing", "exercise"],
+          capabilities: {
+            create: [
+              { type: "booking" },
+              { type: "availability" },
+              { type: "messaging" },
+            ],
+          },
+          services: {
+            create: [
+              { name: "Group Fitness Class", description: "Yoga, Spin, HIIT, Zumba — see schedule.", category: "Fitness", duration: 60, isBookable: true },
+              { name: "Court Reservation", description: "Reserve a basketball or volleyball court.", category: "Recreation", duration: 60, isBookable: true },
+              { name: "Climbing Wall Session", description: "Indoor rock climbing (30ft wall).", category: "Recreation", duration: 60, isBookable: true },
+            ],
+          },
+          infoSections: {
+            create: [
+              {
+                section: "hours",
+                title: "Hours",
+                data: {
+                  hours: [
+                    { day: "Monday-Friday", open: "6:00 AM", close: "10:00 PM" },
+                    { day: "Saturday-Sunday", open: "9:00 AM", close: "7:00 PM" },
+                  ],
+                  pool_hours: "Mon-Fri 6:00 AM-9:00 PM, Sat-Sun 10:00 AM-6:00 PM",
+                },
+              },
+              {
+                section: "services",
+                title: "Facilities & Programs",
+                data: {
+                  facilities: [
+                    { name: "Weight Room", floor: "1st", description: "Free weights, machines, squat racks" },
+                    { name: "Cardio Deck", floor: "2nd", description: "Treadmills, bikes, ellipticals" },
+                    { name: "Pool", floor: "1st", description: "25-yard lap pool and leisure pool" },
+                    { name: "Basketball Courts", floor: "1st", description: "4 full courts" },
+                    { name: "Climbing Wall", floor: "1st", description: "30-foot indoor wall, gear provided" },
+                  ],
+                  group_fitness: ["Yoga", "Spin", "HIIT", "Zumba", "Pilates", "Boxing"],
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Student Recreation Center — " + recCenter.id);
+
+  // =====================================================
+  // OPPORTUNITIES — Research, Internships, Scholarships
+  // =====================================================
+
+  console.log("\nCreating opportunities...");
+
+  // ML Research Assistant Position
+  const researchML = await prisma.user.create({
+    data: {
+      email: "ml-research@cs.ua.edu",
+      passwordHash: pw,
+      name: "ML Research Position",
+      role: "person",
+      profile: {
+        create: {
+          type: "opportunity",
+          displayName: "Undergraduate ML Research Assistant",
+          bio: "Join Dr. Mitchell's Intelligent Systems Lab as an undergraduate research assistant. Work on bias detection in large language models. Python/PyTorch experience required.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "research",
+          department: "Computer Science",
+          opportunityType: "research",
+          deadline: new Date("2026-04-15"),
+          eligibility: "CS juniors/seniors with Python experience and minimum 3.2 GPA",
+          applyUrl: "https://cs.ua.edu/research/apply",
+          compensation: "$15/hr, 10-15 hrs/week",
+          tags: ["research", "machine-learning", "ai", "computer-science", "paid", "undergraduate"],
+          isClaimable: false,
+          capabilities: {
+            create: [
+              { type: "messaging" },
+            ],
+          },
+          infoSections: {
+            create: [
+              {
+                section: "details",
+                title: "Position Details",
+                data: {
+                  lab: "UA Intelligent Systems Lab",
+                  advisor: "Dr. Sarah Mitchell",
+                  duration: "Fall 2026 semester (renewable)",
+                  hours: "10-15 hours/week, flexible schedule",
+                  requirements: [
+                    "CS junior or senior",
+                    "Python proficiency",
+                    "Familiarity with PyTorch or TensorFlow",
+                    "Minimum 3.2 GPA",
+                    "Interest in ML/NLP research",
+                  ],
+                  benefits: [
+                    "$15/hr compensation",
+                    "Potential for co-authored publication",
+                    "Conference travel support",
+                    "Graduate school recommendation letter",
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  ML Research Position — " + researchML.id);
+
+  // Software Engineering Internship
+  const internSWE = await prisma.user.create({
+    data: {
+      email: "swe-intern@careers.ua.edu",
+      passwordHash: pw,
+      name: "SWE Internship",
+      role: "person",
+      profile: {
+        create: {
+          type: "opportunity",
+          displayName: "Software Engineering Internship — BBVA (Birmingham)",
+          bio: "Summer 2026 software engineering internship at BBVA's Birmingham office. Full-stack development with React and Java. Housing stipend included.",
+          location: "Birmingham, AL",
+          status: "available",
+          category: "technology",
+          department: "Computer Science",
+          opportunityType: "internship",
+          deadline: new Date("2026-03-01"),
+          eligibility: "CS or SE majors, rising juniors and seniors",
+          applyUrl: "https://careers.bbva.com/summer2026",
+          compensation: "$30/hr + $2,000 housing stipend",
+          tags: ["internship", "software-engineering", "react", "java", "full-stack", "paid", "summer"],
+          isClaimable: false,
+          capabilities: {
+            create: [
+              { type: "messaging" },
+            ],
+          },
+          infoSections: {
+            create: [
+              {
+                section: "details",
+                title: "Internship Details",
+                data: {
+                  company: "BBVA",
+                  location: "Birmingham, AL (40 min from Tuscaloosa)",
+                  duration: "May 18 to August 8, 2026 (12 weeks)",
+                  tech_stack: ["React", "Java", "Spring Boot", "PostgreSQL", "AWS"],
+                  requirements: [
+                    "CS, SE, or related major",
+                    "Rising junior or senior",
+                    "Experience with at least one frontend framework",
+                    "Familiarity with REST APIs",
+                  ],
+                  benefits: [
+                    "$30/hr",
+                    "$2,000 housing stipend",
+                    "Return offer potential",
+                    "Mentorship program",
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  SWE Internship (BBVA) — " + internSWE.id);
+
+  // Robotics Research Position
+  const researchRobotics = await prisma.user.create({
+    data: {
+      email: "robotics-research@eng.ua.edu",
+      passwordHash: pw,
+      name: "Robotics Research",
+      role: "person",
+      profile: {
+        create: {
+          type: "opportunity",
+          displayName: "Robotics Lab Research Assistant",
+          bio: "Work with Dr. Patel on soft robotics for rehabilitation. Build and test compliant robotic devices. Great for ME/EE students interested in robotics.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "research",
+          department: "Mechanical Engineering",
+          opportunityType: "research",
+          deadline: new Date("2026-05-01"),
+          eligibility: "ME or EE juniors/seniors, CAD experience preferred",
+          compensation: "Course credit (ME 499) or $14/hr",
+          tags: ["research", "robotics", "engineering", "mechanical", "paid", "course-credit"],
+          isClaimable: false,
+          capabilities: {
+            create: [
+              { type: "messaging" },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Robotics Research Position — " + researchRobotics.id);
+
+  // Crimson Scholarship
+  const scholarship = await prisma.user.create({
+    data: {
+      email: "scholarship@ua.edu",
+      passwordHash: pw,
+      name: "Crimson Achievement Award",
+      role: "person",
+      profile: {
+        create: {
+          type: "opportunity",
+          displayName: "Crimson Achievement Scholarship",
+          bio: "Merit-based scholarship for Alabama residents. Covers full tuition for 4 years. Awarded to incoming freshmen with exceptional academic records and community involvement.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "financial_aid",
+          department: "Financial Aid",
+          opportunityType: "scholarship",
+          deadline: new Date("2026-12-01"),
+          eligibility: "Alabama residents, incoming freshmen, minimum 30 ACT/1400 SAT, 3.8 GPA",
+          applyUrl: "https://scholarships.ua.edu/crimson-achievement",
+          compensation: "Full tuition ($12,800/year for 4 years)",
+          tags: ["scholarship", "financial-aid", "tuition", "merit", "freshman"],
+          isClaimable: false,
+          capabilities: {
+            create: [
+              { type: "messaging" },
+            ],
+          },
+          infoSections: {
+            create: [
+              {
+                section: "details",
+                title: "Scholarship Details",
+                data: {
+                  value: "Full tuition ($12,800/year)",
+                  duration: "4 years (renewable with 3.3 GPA)",
+                  requirements: [
+                    "Alabama resident",
+                    "Incoming freshman",
+                    "Minimum 30 ACT or 1400 SAT",
+                    "Minimum 3.8 unweighted GPA",
+                    "Demonstrated community involvement",
+                  ],
+                  application_steps: [
+                    "Apply for admission to UA",
+                    "Submit scholarship application at scholarships.ua.edu",
+                    "Write 500-word essay on community leadership",
+                    "Submit two letters of recommendation",
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Crimson Achievement Scholarship — " + scholarship.id);
+
+  // =====================================================
+  // LOCAL BUSINESSES (preserved from v3)
+  // =====================================================
+
+  console.log("\nCreating local businesses...");
+
+  // Crimson Cuts Barbershop
   const crimsonCuts = await prisma.user.create({
     data: {
       email: "info@crimsoncutsbarber.com",
@@ -48,7 +1046,7 @@ async function main() {
         create: {
           type: "business",
           displayName: "Crimson Cuts Barbershop",
-          bio: "Tuscaloosa's favorite barbershop since 2018. Walk-ins welcome. Clean fades, beard trims, and hot towel shaves.",
+          bio: "Tuscaloosa's favorite barbershop since 2018. Walk-ins welcome. Clean fades, beard trims, and hot towel shaves. Right by campus on University Blvd.",
           location: "Tuscaloosa, AL",
           status: "available",
           category: "barber",
@@ -58,6 +1056,7 @@ async function main() {
           website: "https://crimsoncutsbarber.com",
           address: "1201 University Blvd, Tuscaloosa, AL 35401",
           hours: "Mon-Fri 9am-7pm, Sat 8am-5pm, Sun Closed",
+          tags: ["barber", "haircuts", "fades", "near-campus"],
           services: {
             create: [
               { name: "Men's Haircut", description: "Classic or modern cuts with hot towel.", category: "Barber", price: "$20", duration: 30, isBookable: true },
@@ -81,10 +1080,10 @@ async function main() {
                 title: "Services & Pricing",
                 data: {
                   services: [
-                    { id: "mens_haircut", name: "Men's Haircut", duration: 30, price: 20, description: "Classic or modern cuts with hot towel" },
-                    { id: "beard_trim", name: "Beard Trim", duration: 15, price: 10, description: "Shape up and line work" },
-                    { id: "cut_beard_combo", name: "Haircut + Beard Combo", duration: 45, price: 28, description: "Full service" },
-                    { id: "hot_towel_shave", name: "Hot Towel Shave", duration: 30, price: 25, description: "Premium straight razor" },
+                    { id: "mens_haircut", name: "Men's Haircut", duration: 30, price: 20 },
+                    { id: "beard_trim", name: "Beard Trim", duration: 15, price: 10 },
+                    { id: "cut_beard_combo", name: "Haircut + Beard Combo", duration: 45, price: 28 },
+                    { id: "hot_towel_shave", name: "Hot Towel Shave", duration: 30, price: 25 },
                   ],
                 },
               },
@@ -93,35 +1092,10 @@ async function main() {
                 title: "Business Hours",
                 data: {
                   hours: [
-                    { day: "Monday", open: "9:00", close: "19:00" },
-                    { day: "Tuesday", open: "9:00", close: "19:00" },
-                    { day: "Wednesday", open: "9:00", close: "19:00" },
-                    { day: "Thursday", open: "9:00", close: "19:00" },
-                    { day: "Friday", open: "9:00", close: "19:00" },
-                    { day: "Saturday", open: "8:00", close: "17:00" },
-                    { day: "Sunday", open: null, close: null, closed: true },
+                    { day: "Monday-Friday", open: "9:00 AM", close: "7:00 PM" },
+                    { day: "Saturday", open: "8:00 AM", close: "5:00 PM" },
+                    { day: "Sunday", open: "Closed" },
                   ],
-                },
-              },
-              {
-                section: "location",
-                title: "Location",
-                data: {
-                  address: "1201 University Blvd, Tuscaloosa, AL 35401",
-                  lat: 33.2098,
-                  lng: -87.5692,
-                  parking: "Free parking lot behind building",
-                  landmarks: "Near campus, across from Publix",
-                },
-              },
-              {
-                section: "about",
-                title: "About Us",
-                data: {
-                  description: "Crimson Cuts has been serving the Tuscaloosa community since 2018. Founded by local barber James Wilson, we offer premium cuts at student-friendly prices.",
-                  established: 2018,
-                  specialties: ["Fades", "Beard sculpting", "Hot towel shaves"],
-                  team_size: 4,
                 },
               },
             ],
@@ -131,12 +1105,86 @@ async function main() {
       messageSettings: { create: {} },
     },
   });
-  console.log("  ✓ Crimson Cuts Barbershop (booking, availability, quotes)");
+  console.log("  Crimson Cuts Barbershop — " + crimsonCuts.id);
 
-  // ─── Tuscaloosa Chicken House ─────────────────────────
+  // Black Warrior Coffee Co.
+  const bwCoffee = await prisma.user.create({
+    data: {
+      email: "hello@blackwarriorcoffee.com",
+      passwordHash: pw,
+      name: "Black Warrior Coffee Co.",
+      role: "business",
+      profile: {
+        create: {
+          type: "business",
+          displayName: "Black Warrior Coffee Co.",
+          bio: "Craft coffee and study-friendly vibes near the Quad. Espresso, cold brew, pastries, and sandwiches. Free Wi-Fi. Late hours during finals.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "coffee_shop",
+          integrationType: "square",
+          paymentMode: "checkout_url",
+          phone: "(205) 555-0202",
+          website: "https://blackwarriorcoffee.com",
+          address: "620 Paul W Bryant Dr, Tuscaloosa, AL 35401",
+          hours: "Mon-Fri 6am-10pm, Sat 7am-10pm, Sun 8am-8pm",
+          tags: ["coffee", "study-spot", "near-campus", "wifi"],
+          services: {
+            create: [
+              { name: "Drip Coffee", description: "House blend, single origin options.", category: "Coffee", price: "$3" },
+              { name: "Espresso Drinks", description: "Lattes, cappuccinos, americanos.", category: "Coffee", price: "$4-6" },
+              { name: "Cold Brew", description: "24-hour cold brew, nitro available.", category: "Coffee", price: "$5" },
+            ],
+          },
+          capabilities: {
+            create: [
+              { type: "ordering" },
+              { type: "messaging" },
+            ],
+          },
+          infoSections: {
+            create: [
+              {
+                section: "menu",
+                title: "Menu",
+                data: {
+                  items: [
+                    { id: "drip", name: "Drip Coffee", price: 3.00, category: "Hot Drinks" },
+                    { id: "latte", name: "Latte", price: 4.50, category: "Hot Drinks" },
+                    { id: "cappuccino", name: "Cappuccino", price: 4.50, category: "Hot Drinks" },
+                    { id: "americano", name: "Americano", price: 3.50, category: "Hot Drinks" },
+                    { id: "cold_brew", name: "Cold Brew", price: 5.00, category: "Cold Drinks" },
+                    { id: "iced_latte", name: "Iced Latte", price: 5.00, category: "Cold Drinks" },
+                    { id: "croissant", name: "Butter Croissant", price: 3.50, category: "Pastries" },
+                    { id: "muffin", name: "Blueberry Muffin", price: 3.00, category: "Pastries" },
+                  ],
+                },
+              },
+              {
+                section: "hours",
+                title: "Hours",
+                data: {
+                  hours: [
+                    { day: "Monday-Friday", open: "6:00 AM", close: "10:00 PM" },
+                    { day: "Saturday", open: "7:00 AM", close: "10:00 PM" },
+                    { day: "Sunday", open: "8:00 AM", close: "8:00 PM" },
+                  ],
+                  finals_hours: "Open until midnight during finals week!",
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Black Warrior Coffee Co. — " + bwCoffee.id);
+
+  // Tuscaloosa Chicken House
   const chickenHouse = await prisma.user.create({
     data: {
-      email: "orders@tuscchickenhouse.com",
+      email: "info@tuskcchicken.com",
       passwordHash: pw,
       name: "Tuscaloosa Chicken House",
       role: "business",
@@ -144,22 +1192,16 @@ async function main() {
         create: {
           type: "business",
           displayName: "Tuscaloosa Chicken House",
-          bio: "Southern fried chicken, sides, and sweet tea. Family-owned since 1995. Takeout and call-ahead orders.",
+          bio: "Southern fried chicken, tenders, and sides. Campus delivery available. Open late on game days. Student meal deals available.",
           location: "Tuscaloosa, AL",
           status: "available",
           category: "restaurant",
           integrationType: "manual",
           paymentMode: "pay_on_pickup",
-          phone: "(205) 555-0202",
-          address: "803 15th St, Tuscaloosa, AL 35401",
-          hours: "Mon-Sat 11am-9pm, Sun 12pm-7pm",
-          services: {
-            create: [
-              { name: "Dine-In", category: "Restaurant", price: "$$" },
-              { name: "Takeout", category: "Restaurant", price: "$$" },
-              { name: "Catering", description: "Event catering for 20+", category: "Restaurant", price: "Contact for quote" },
-            ],
-          },
+          phone: "(205) 555-0303",
+          address: "1805 University Blvd, Tuscaloosa, AL 35401",
+          hours: "Mon-Sat 11am-10pm, Sun 12pm-8pm",
+          tags: ["restaurant", "chicken", "southern", "delivery", "near-campus"],
           capabilities: {
             create: [
               { type: "ordering" },
@@ -174,183 +1216,16 @@ async function main() {
                 title: "Menu",
                 data: {
                   items: [
-                    { id: "chicken_breast", name: "Fried Chicken Breast", price: 6.99, category: "Entrees" },
-                    { id: "chicken_tender_3", name: "Chicken Tenders (3pc)", price: 5.99, category: "Entrees" },
-                    { id: "chicken_tender_5", name: "Chicken Tenders (5pc)", price: 8.99, category: "Entrees" },
-                    { id: "chicken_wings_6", name: "Wings (6pc)", price: 7.49, category: "Entrees" },
-                    { id: "chicken_wings_12", name: "Wings (12pc)", price: 13.99, category: "Entrees" },
-                    { id: "family_meal", name: "Family Meal (12pc + 3 sides)", price: 29.99, category: "Combos" },
-                    { id: "mac_cheese", name: "Mac & Cheese", price: 3.49, category: "Sides" },
-                    { id: "collard_greens", name: "Collard Greens", price: 2.99, category: "Sides" },
-                    { id: "coleslaw", name: "Coleslaw", price: 2.49, category: "Sides" },
-                    { id: "cornbread", name: "Cornbread (2pc)", price: 1.99, category: "Sides" },
-                    { id: "sweet_tea", name: "Sweet Tea", price: 1.99, category: "Drinks" },
-                    { id: "lemonade", name: "Fresh Lemonade", price: 2.49, category: "Drinks" },
-                  ],
-                },
-              },
-              {
-                section: "hours",
-                title: "Business Hours",
-                data: {
-                  hours: [
-                    { day: "Monday", open: "11:00", close: "21:00" },
-                    { day: "Tuesday", open: "11:00", close: "21:00" },
-                    { day: "Wednesday", open: "11:00", close: "21:00" },
-                    { day: "Thursday", open: "11:00", close: "21:00" },
-                    { day: "Friday", open: "11:00", close: "21:00" },
-                    { day: "Saturday", open: "11:00", close: "21:00" },
-                    { day: "Sunday", open: "12:00", close: "19:00" },
-                  ],
-                },
-              },
-              {
-                section: "location",
-                title: "Location",
-                data: {
-                  address: "803 15th St, Tuscaloosa, AL 35401",
-                  parking: "Street parking and small lot",
-                },
-              },
-            ],
-          },
-        },
-      },
-      messageSettings: { create: {} },
-    },
-  });
-  console.log("  ✓ Tuscaloosa Chicken House (ordering, quotes)");
-
-  // ─── Tuscaloosa Tutoring Center ──────────────────────
-  const tuscTutoring = await prisma.user.create({
-    data: {
-      email: "contact@tusctutoring.com",
-      passwordHash: pw,
-      name: "Tuscaloosa Tutoring Center",
-      role: "business",
-      profile: {
-        create: {
-          type: "business",
-          displayName: "Tuscaloosa Tutoring Center",
-          bio: "Professional tutoring for UA students and Tuscaloosa K-12. All subjects. In-person or online. Now hiring tutors!",
-          location: "Tuscaloosa, AL",
-          status: "hiring",
-          category: "education",
-          integrationType: "manual",
-          paymentMode: "invoice_later",
-          phone: "(205) 555-0303",
-          website: "https://tusctutoring.com",
-          address: "800 Lurleen Wallace Blvd, Tuscaloosa, AL 35401",
-          hours: "Mon-Sat 9am-9pm, Sun 1pm-6pm",
-          services: {
-            create: [
-              { name: "Math Tutoring", description: "Algebra through Calc III", category: "Tutoring", price: "$35/hr", duration: 60, isBookable: true },
-              { name: "Science Tutoring", description: "Bio, Chem, Physics", category: "Tutoring", price: "$35/hr", duration: 60, isBookable: true },
-              { name: "Writing Lab", description: "Essays and research papers", category: "Tutoring", price: "$30/hr", duration: 60, isBookable: true },
-              { name: "ACT/SAT/GRE Prep", description: "Structured prep package", category: "Test Prep", price: "$200/4-session", duration: 90, isBookable: true },
-            ],
-          },
-          capabilities: {
-            create: [
-              { type: "booking" },
-              { type: "availability" },
-              { type: "messaging" },
-              { type: "service_requests" },
-              { type: "quotes" },
-            ],
-          },
-          infoSections: {
-            create: [
-              {
-                section: "services",
-                title: "Tutoring Services",
-                data: {
-                  services: [
-                    { id: "math_tutoring", name: "Math Tutoring", subjects: ["Algebra", "Calculus I-III", "Statistics", "Linear Algebra"], price_per_hour: 35, duration: 60 },
-                    { id: "science_tutoring", name: "Science Tutoring", subjects: ["Biology", "Chemistry", "Physics"], price_per_hour: 35, duration: 60 },
-                    { id: "writing_lab", name: "Writing Lab", subjects: ["Essays", "Research Papers", "Grammar"], price_per_hour: 30, duration: 60 },
-                    { id: "test_prep", name: "ACT/SAT/GRE Prep", format: "4-session package", price: 200, duration: 90 },
-                  ],
-                },
-              },
-              {
-                section: "hours",
-                title: "Business Hours",
-                data: {
-                  hours: [
-                    { day: "Monday-Saturday", open: "9:00", close: "21:00" },
-                    { day: "Sunday", open: "13:00", close: "18:00" },
-                  ],
-                },
-              },
-              {
-                section: "faq",
-                title: "Frequently Asked Questions",
-                data: {
-                  questions: [
-                    { q: "Do you offer online sessions?", a: "Yes, all tutoring is available via Zoom." },
-                    { q: "What's your cancellation policy?", a: "Cancel 24 hours in advance for a full refund." },
-                    { q: "Do you offer group rates?", a: "Yes, groups of 3+ get 20% off per person." },
-                  ],
-                },
-              },
-            ],
-          },
-        },
-      },
-      messageSettings: { create: {} },
-    },
-  });
-  console.log("  ✓ Tuscaloosa Tutoring Center (booking, availability, quotes, service_requests)");
-
-  // ─── Black Warrior Coffee Co. ─────────────────────────
-  const bwCoffee = await prisma.user.create({
-    data: {
-      email: "hello@blackwarriorcoffee.com",
-      passwordHash: pw,
-      name: "Black Warrior Coffee Co.",
-      role: "business",
-      profile: {
-        create: {
-          type: "business",
-          displayName: "Black Warrior Coffee Co.",
-          bio: "Local coffee shop and coworking space. Great wifi, local pastries, and community vibes. Now hiring baristas!",
-          location: "Tuscaloosa, AL",
-          status: "hiring",
-          category: "coffee_shop",
-          integrationType: "square",
-          paymentMode: "checkout_url",
-          phone: "(205) 555-0404",
-          address: "2300 4th St, Tuscaloosa, AL 35401",
-          hours: "Mon-Fri 6am-8pm, Sat-Sun 7am-6pm",
-          services: {
-            create: [
-              { name: "Coffee & Espresso", category: "Food & Drink", price: "$3-6" },
-              { name: "Coworking Space", description: "Day pass", category: "Workspace", price: "$10/day" },
-              { name: "Event Space Rental", description: "2hr blocks", category: "Events", price: "$75/2hr", duration: 120, isBookable: true },
-            ],
-          },
-          capabilities: {
-            create: [
-              { type: "ordering" },
-              { type: "booking" },
-              { type: "messaging" },
-            ],
-          },
-          infoSections: {
-            create: [
-              {
-                section: "menu",
-                title: "Coffee Menu",
-                data: {
-                  items: [
-                    { id: "drip_coffee", name: "Drip Coffee", price: 3.00, sizes: ["S", "M", "L"] },
-                    { id: "latte", name: "Latte", price: 4.50, sizes: ["S", "M", "L"] },
-                    { id: "cold_brew", name: "Cold Brew", price: 4.00, sizes: ["M", "L"] },
-                    { id: "cappuccino", name: "Cappuccino", price: 4.50, sizes: ["S", "M"] },
-                    { id: "mocha", name: "Mocha", price: 5.00, sizes: ["S", "M", "L"] },
-                    { id: "croissant", name: "Butter Croissant", price: 3.50, category: "Pastry" },
-                    { id: "muffin", name: "Blueberry Muffin", price: 3.00, category: "Pastry" },
+                    { id: "chicken_plate", name: "Fried Chicken Plate (3pc)", price: 9.99, description: "With 2 sides and roll" },
+                    { id: "tender_basket", name: "Chicken Tender Basket", price: 8.49, description: "4 tenders with fries and sauce" },
+                    { id: "wings_6", name: "Wings (6pc)", price: 7.99, description: "Choice of sauce" },
+                    { id: "wings_12", name: "Wings (12pc)", price: 13.99, description: "Choice of sauce" },
+                    { id: "chicken_sandwich", name: "Chicken Sandwich", price: 7.49, description: "With slaw and pickles" },
+                    { id: "student_deal", name: "Student Meal Deal", price: 6.99, description: "2 tenders, fries, drink — show student ID" },
+                    { id: "mac_cheese", name: "Mac & Cheese (side)", price: 2.99 },
+                    { id: "coleslaw", name: "Coleslaw (side)", price: 1.99 },
+                    { id: "fries", name: "Fries (side)", price: 2.49 },
+                    { id: "sweet_tea", name: "Sweet Tea", price: 1.99 },
                   ],
                 },
               },
@@ -359,9 +1234,10 @@ async function main() {
                 title: "Hours",
                 data: {
                   hours: [
-                    { day: "Monday-Friday", open: "6:00", close: "20:00" },
-                    { day: "Saturday-Sunday", open: "7:00", close: "18:00" },
+                    { day: "Monday-Saturday", open: "11:00 AM", close: "10:00 PM" },
+                    { day: "Sunday", open: "12:00 PM", close: "8:00 PM" },
                   ],
+                  game_day: "Open until midnight on home game days!",
                 },
               },
             ],
@@ -371,313 +1247,18 @@ async function main() {
       messageSettings: { create: {} },
     },
   });
-  console.log("  ✓ Black Warrior Coffee Co. (ordering, booking)");
+  console.log("  Tuscaloosa Chicken House — " + chickenHouse.id);
 
-  // ─── Tide Auto Repair ─────────────────────────────────
-  const tideAuto = await prisma.user.create({
-    data: {
-      email: "service@tideautorepair.com",
-      passwordHash: pw,
-      name: "Tide Auto Repair",
-      role: "business",
-      profile: {
-        create: {
-          type: "business",
-          displayName: "Tide Auto Repair",
-          bio: "Honest, affordable auto repair. ASE certified. Student discount. Oil changes, brakes, engine work.",
-          location: "Tuscaloosa, AL",
-          status: "available",
-          category: "auto_repair",
-          integrationType: "manual",
-          paymentMode: "business_api_charge",
-          phone: "(205) 555-0505",
-          address: "1500 McFarland Blvd E, Tuscaloosa, AL 35404",
-          hours: "Mon-Fri 7:30am-5:30pm, Sat 8am-12pm",
-          services: {
-            create: [
-              { name: "Oil Change", description: "Conventional or synthetic", category: "Auto", price: "$30-55", duration: 30, isBookable: true },
-              { name: "Brake Service", description: "Pads, rotors, fluid", category: "Auto", price: "Starting at $120", duration: 90, isBookable: true },
-              { name: "Engine Diagnostics", description: "Check engine light", category: "Auto", price: "$50", duration: 60, isBookable: true },
-              { name: "Tire Service", description: "Rotation, balancing, flat repair", category: "Auto", price: "$15-40", duration: 45, isBookable: true },
-            ],
-          },
-          capabilities: {
-            create: [
-              { type: "booking" },
-              { type: "availability" },
-              { type: "quotes" },
-              { type: "messaging" },
-            ],
-          },
-          infoSections: {
-            create: [
-              {
-                section: "services",
-                title: "Auto Services",
-                data: {
-                  services: [
-                    { id: "oil_change", name: "Oil Change", price_range: "$30-55", duration: 30, includes: ["Filter", "Fluid check", "Multi-point inspection"] },
-                    { id: "brake_service", name: "Brake Service", price_range: "$120+", duration: 90, includes: ["Pad replacement", "Rotor inspection", "Fluid check"] },
-                    { id: "diagnostics", name: "Engine Diagnostics", price: 50, duration: 60 },
-                    { id: "tire_service", name: "Tire Service", price_range: "$15-40", duration: 45 },
-                  ],
-                },
-              },
-              {
-                section: "policies",
-                title: "Policies",
-                data: {
-                  student_discount: "10% off with valid UA student ID",
-                  warranty: "12-month / 12,000-mile warranty on parts and labor",
-                  payment: ["Cash", "Credit/Debit", "Venmo", "CashApp"],
-                },
-              },
-            ],
-          },
-        },
-      },
-      messageSettings: { create: {} },
-    },
-  });
-  console.log("  ✓ Tide Auto Repair (booking, availability, quotes)");
+  // =====================================================
+  // STUDENT SERVICE PROVIDERS
+  // =====================================================
 
-  // ─── Campus Cleaners ──────────────────────────────────
-  const campusCleaners = await prisma.user.create({
-    data: {
-      email: "book@campuscleanerstuscaloosa.com",
-      passwordHash: pw,
-      name: "Campus Cleaners",
-      role: "business",
-      profile: {
-        create: {
-          type: "business",
-          displayName: "Campus Cleaners",
-          bio: "Residential cleaning for apartments, dorms, and student housing. Move-in/move-out cleaning specialists.",
-          location: "Tuscaloosa, AL",
-          status: "available",
-          category: "cleaning",
-          integrationType: "manual",
-          paymentMode: "invoice_later",
-          phone: "(205) 555-0606",
-          hours: "Mon-Sat 8am-6pm",
-          services: {
-            create: [
-              { name: "Standard Cleaning", description: "Kitchen, baths, floors", category: "Cleaning", price: "$80-120", duration: 120, isBookable: true },
-              { name: "Deep Cleaning", description: "Full detail including appliances", category: "Cleaning", price: "$150-250", duration: 180, isBookable: true },
-              { name: "Move-out Cleaning", description: "Get your deposit back!", category: "Cleaning", price: "$175-300", duration: 240, isBookable: true },
-            ],
-          },
-          capabilities: {
-            create: [
-              { type: "booking" },
-              { type: "availability" },
-              { type: "quotes" },
-              { type: "service_requests" },
-              { type: "messaging" },
-            ],
-          },
-          infoSections: {
-            create: [
-              {
-                section: "services",
-                title: "Cleaning Services",
-                data: {
-                  services: [
-                    { id: "standard", name: "Standard Cleaning", price_range: "$80-120", duration_hours: 2, includes: ["Kitchen", "Bathrooms", "Floors", "Dusting"] },
-                    { id: "deep", name: "Deep Cleaning", price_range: "$150-250", duration_hours: 3, includes: ["Everything in Standard", "Appliances", "Baseboards", "Windows"] },
-                    { id: "moveout", name: "Move-out Cleaning", price_range: "$175-300", duration_hours: 4, includes: ["Full deep clean", "Carpet treatment", "Wall marks removal"] },
-                  ],
-                },
-              },
-            ],
-          },
-        },
-      },
-      messageSettings: { create: {} },
-    },
-  });
-  console.log("  ✓ Campus Cleaners (booking, availability, quotes, service_requests)");
+  console.log("\nCreating student service providers...");
 
-  // ═══════════════════════════════════════════════════════
-  // PEOPLE PROFILES
-  // ═══════════════════════════════════════════════════════
-
-  const marcus = await prisma.user.create({
-    data: {
-      email: "marcus.jones@ua.edu",
-      passwordHash: pw,
-      name: "Marcus Jones",
-      role: "person",
-      profile: {
-        create: {
-          type: "person",
-          displayName: "Marcus Jones",
-          bio: "CS senior at UA. Python tutoring, web development. Available part-time.",
-          location: "Tuscaloosa, AL",
-          status: "looking_for_work",
-          skills: {
-            create: [
-              { name: "Python", category: "Programming" },
-              { name: "JavaScript", category: "Programming" },
-              { name: "React/Next.js", category: "Programming" },
-              { name: "Calculus", category: "Tutoring" },
-              { name: "Data Structures", category: "Tutoring" },
-            ],
-          },
-          services: {
-            create: [
-              { name: "Math Tutoring", description: "Calc I-III, algebra, statistics", category: "Tutoring", price: "$25/hr", duration: 60, isBookable: true },
-              { name: "Python Tutoring", description: "Beginner to intermediate", category: "Tutoring", price: "$30/hr", duration: 60, isBookable: true },
-              { name: "Web Development", description: "React/Next.js projects", category: "Freelance", price: "Starting at $200" },
-            ],
-          },
-          capabilities: {
-            create: [
-              { type: "booking" },
-              { type: "availability" },
-              { type: "messaging" },
-              { type: "service_requests" },
-            ],
-          },
-        },
-      },
-      messageSettings: { create: {} },
-    },
-  });
-  console.log("  ✓ Marcus Jones (CS tutor, looking for work)");
-
-  const jamal = await prisma.user.create({
-    data: {
-      email: "jamal.carter@gmail.com",
-      passwordHash: pw,
-      name: "Jamal Carter",
-      role: "person",
-      profile: {
-        create: {
-          type: "person",
-          displayName: "Jamal Carter",
-          bio: "Tuscaloosa native. Landscaping and handyman work. Reliable and affordable.",
-          location: "Tuscaloosa, AL",
-          status: "available",
-          skills: {
-            create: [
-              { name: "Lawn Care", category: "Landscaping" },
-              { name: "Pressure Washing", category: "Home Services" },
-              { name: "Fence Repair", category: "Handyman" },
-              { name: "Gutter Cleaning", category: "Home Services" },
-              { name: "Tree Trimming", category: "Landscaping" },
-            ],
-          },
-          services: {
-            create: [
-              { name: "Lawn Mowing", description: "Weekly or biweekly", category: "Landscaping", price: "$35-50/visit" },
-              { name: "Pressure Washing", description: "Driveways, decks, siding", category: "Home Services", price: "Starting at $75" },
-              { name: "General Handyman", description: "Repairs, fence, gutters", category: "Handyman", price: "$25/hr" },
-            ],
-          },
-          capabilities: {
-            create: [
-              { type: "quotes" },
-              { type: "messaging" },
-              { type: "service_requests" },
-            ],
-          },
-        },
-      },
-      messageSettings: { create: {} },
-    },
-  });
-  console.log("  ✓ Jamal Carter (landscaping, handyman)");
-
-  const emily = await prisma.user.create({
-    data: {
-      email: "emily.chen@ua.edu",
-      passwordHash: pw,
-      name: "Emily Chen",
-      role: "person",
-      profile: {
-        create: {
-          type: "person",
-          displayName: "Emily Chen",
-          bio: "Graphic design student at UA. Logos, flyers, social media content.",
-          location: "Tuscaloosa, AL",
-          status: "looking_for_work",
-          skills: {
-            create: [
-              { name: "Graphic Design", category: "Design" },
-              { name: "Logo Design", category: "Design" },
-              { name: "Social Media", category: "Marketing" },
-              { name: "Figma", category: "Design" },
-              { name: "Adobe Illustrator", category: "Design" },
-            ],
-          },
-          services: {
-            create: [
-              { name: "Logo Design", description: "3 concepts, 2 revision rounds", category: "Design", price: "$75-150" },
-              { name: "Social Media Package", description: "10 branded posts", category: "Marketing", price: "$100" },
-              { name: "Flyer Design", description: "Events, menus, promo", category: "Design", price: "$30-50/flyer" },
-            ],
-          },
-          capabilities: {
-            create: [
-              { type: "quotes" },
-              { type: "messaging" },
-              { type: "service_requests" },
-            ],
-          },
-        },
-      },
-      messageSettings: { create: {} },
-    },
-  });
-  console.log("  ✓ Emily Chen (graphic designer)");
-
-  const devon = await prisma.user.create({
-    data: {
-      email: "devon.brooks@gmail.com",
-      passwordHash: pw,
-      name: "Devon Brooks",
-      role: "person",
-      profile: {
-        create: {
-          type: "person",
-          displayName: "Devon Brooks",
-          bio: "Personal trainer and kinesiology student. Custom workouts and nutrition.",
-          location: "Tuscaloosa, AL",
-          status: "available",
-          skills: {
-            create: [
-              { name: "Personal Training", category: "Fitness" },
-              { name: "Nutrition Coaching", category: "Health" },
-              { name: "Weight Training", category: "Fitness" },
-              { name: "HIIT", category: "Fitness" },
-            ],
-          },
-          services: {
-            create: [
-              { name: "Personal Training", description: "1-on-1 sessions", category: "Fitness", price: "$40/session", duration: 60, isBookable: true },
-              { name: "Nutrition Plan", description: "Custom meal plan", category: "Health", price: "$50 one-time" },
-              { name: "Group Fitness", description: "HIIT/bootcamp 4-8 people", category: "Fitness", price: "$10/person", duration: 45, isBookable: true },
-            ],
-          },
-          capabilities: {
-            create: [
-              { type: "booking" },
-              { type: "availability" },
-              { type: "messaging" },
-              { type: "quotes" },
-            ],
-          },
-        },
-      },
-      messageSettings: { create: {} },
-    },
-  });
-  console.log("  ✓ Devon Brooks (personal trainer)");
-
+  // Ashley Morgan — Hair Stylist
   const ashley = await prisma.user.create({
     data: {
-      email: "ashley.morgan@outlook.com",
+      email: "ashley@crimson.ua.edu",
       passwordHash: pw,
       name: "Ashley Morgan",
       role: "person",
@@ -685,9 +1266,13 @@ async function main() {
         create: {
           type: "person",
           displayName: "Ashley Morgan",
-          bio: "Licensed cosmetologist. Braids, locs, cuts, and color. Home studio near campus.",
+          bio: "Licensed cosmetologist and UA student. Specializing in braids, locs, and natural hair. Mobile — I come to your dorm or apartment!",
           location: "Tuscaloosa, AL",
           status: "available",
+          category: "hair",
+          campusRole: "student",
+          department: "Human Environmental Sciences",
+          tags: ["hair", "braids", "locs", "natural-hair", "mobile", "student"],
           skills: {
             create: [
               { name: "Braiding", category: "Hair" },
@@ -698,9 +1283,9 @@ async function main() {
           },
           services: {
             create: [
-              { name: "Box Braids", description: "Medium or small, all lengths", category: "Hair", price: "$120-200", duration: 180, isBookable: true },
-              { name: "Loc Maintenance", description: "Retwist, repair, styling", category: "Hair", price: "$60-100", duration: 90, isBookable: true },
-              { name: "Haircut & Style", description: "Men's and women's", category: "Hair", price: "$25-45", duration: 45, isBookable: true },
+              { name: "Box Braids", description: "Medium to jumbo box braids.", category: "Hair", price: "$120-200", duration: 180, isBookable: true },
+              { name: "Loc Maintenance", description: "Retwist and style for existing locs.", category: "Hair", price: "$60-100", duration: 90, isBookable: true },
+              { name: "Haircut & Style", description: "Cut, wash, and style.", category: "Hair", price: "$25-45", duration: 60, isBookable: true },
             ],
           },
           capabilities: {
@@ -716,55 +1301,109 @@ async function main() {
       messageSettings: { create: {} },
     },
   });
-  console.log("  ✓ Ashley Morgan (cosmetologist)");
+  console.log("  Ashley Morgan (Hair) — " + ashley.id);
 
-  // ═══════════════════════════════════════════════════════
+  // Devon Brooks — Personal Trainer
+  const devon = await prisma.user.create({
+    data: {
+      email: "devon@crimson.ua.edu",
+      passwordHash: pw,
+      name: "Devon Brooks",
+      role: "person",
+      profile: {
+        create: {
+          type: "person",
+          displayName: "Devon Brooks",
+          bio: "Certified personal trainer and UA kinesiology student. Workouts at the Rec Center or outdoors. First session free! Helping you hit your fitness goals.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "fitness",
+          campusRole: "student",
+          department: "Kinesiology",
+          tags: ["fitness", "personal-training", "gym", "nutrition", "student"],
+          skills: {
+            create: [
+              { name: "Personal Training", category: "Fitness" },
+              { name: "Nutrition Coaching", category: "Fitness" },
+              { name: "Weight Training", category: "Fitness" },
+              { name: "HIIT", category: "Fitness" },
+            ],
+          },
+          services: {
+            create: [
+              { name: "Personal Training Session", description: "1-on-1 workout at the Rec Center.", category: "Fitness", price: "$40/session", duration: 60, isBookable: true },
+              { name: "Nutrition Plan", description: "Customized meal plan based on your goals.", category: "Fitness", price: "$50", duration: 30, isBookable: true },
+              { name: "Group Fitness", description: "Small group workout (2-4 people).", category: "Fitness", price: "$15/person", duration: 60, isBookable: true },
+            ],
+          },
+          capabilities: {
+            create: [
+              { type: "booking" },
+              { type: "availability" },
+              { type: "messaging" },
+              { type: "quotes" },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Devon Brooks (Trainer) — " + devon.id);
+
+  // =====================================================
   // SAMPLE DATA
-  // ═══════════════════════════════════════════════════════
+  // =====================================================
 
-  // Sample messages
-  const tuscTutoringUser = await prisma.user.findUnique({ where: { email: "contact@tusctutoring.com" } });
-  const marcusUser = await prisma.user.findUnique({ where: { email: "marcus.jones@ua.edu" } });
-  if (tuscTutoringUser && marcusUser) {
+  const advisorProfile = await prisma.profile.findUnique({ where: { userId: advisorMarcus.id } });
+  const tutorProfile = await prisma.profile.findUnique({ where: { userId: tutorJordan.id } });
+
+  if (advisorProfile && tutorProfile) {
     await prisma.message.create({
       data: {
-        senderId: tuscTutoringUser.id,
-        recipientId: marcusUser.id,
-        subject: "Tutoring Position — Math & CS",
-        body: "Hi Marcus! We saw your profile and we're looking for math and CS tutors. Starting pay $18/hr. Interested?",
+        senderId: advisorMarcus.id,
+        recipientId: tutorJordan.id,
+        subject: "CS Tutoring Position Available",
+        body: "Hey Jordan, the CS department is expanding their tutoring program and we're looking for experienced tutors. Would you be interested in a paid position? $15/hr, 10 hrs/week. Let me know!",
       },
     });
+    console.log("\n  Sample message created");
   }
 
-  // Summary
-  const counts = {
-    users: await prisma.user.count(),
-    profiles: await prisma.profile.count(),
-    skills: await prisma.skill.count(),
-    services: await prisma.service.count(),
-    capabilities: await prisma.capability.count(),
-    infoSections: await prisma.infoSection.count(),
-    messages: await prisma.message.count(),
-  };
+  // =====================================================
+  // SUMMARY
+  // =====================================================
 
-  console.log(`
-✅ Platform seed complete!
+  const profileCount = await prisma.profile.count();
+  const capCount = await prisma.capability.count();
+  const serviceCount = await prisma.service.count();
+  const skillCount = await prisma.skill.count();
+  const infoCount = await prisma.infoSection.count();
 
-  ${counts.users} users (${await prisma.user.count({ where: { role: "person" } })} people, ${await prisma.user.count({ where: { role: "business" } })} businesses)
-  ${counts.profiles} profiles
-  ${counts.skills} skills
-  ${counts.services} services
-  ${counts.capabilities} capabilities
-  ${counts.infoSections} info sections
-  ${counts.messages} messages
-
-  All accounts use password: password123
-`);
+  console.log("\n=============================================");
+  console.log("AgentNet Bama Campus MVP — Seeded!");
+  console.log("");
+  console.log("  Profiles:      " + profileCount);
+  console.log("    Professors:  3");
+  console.log("    Advisors:    2");
+  console.log("    Tutors:      3");
+  console.log("    Sites:       4 (dining, library, rec)");
+  console.log("    Opportunities: 4 (research, internship, scholarship)");
+  console.log("    Businesses:  3");
+  console.log("    Students:    2 (service providers)");
+  console.log("");
+  console.log("  Capabilities:  " + capCount);
+  console.log("  Services:      " + serviceCount);
+  console.log("  Skills:        " + skillCount);
+  console.log("  Info Sections: " + infoCount);
+  console.log("");
+  console.log("  All passwords: password123");
+  console.log("=============================================");
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Seed failed:", e);
+    console.error("Seed error:", e);
     process.exit(1);
   })
   .finally(async () => {

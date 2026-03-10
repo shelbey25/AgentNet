@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AgentNet — AI-Powered Local Platform for Tuscaloosa",
+  title: "BamaAgent — AI Campus Assistant for The University of Alabama",
   description:
-    "Chat with AI to discover businesses, book appointments, place orders, and more in Tuscaloosa.",
+    "Chat with AI to find professors, dining, tutors, research opportunities, and local businesses at UA.",
 };
 
 export default function RootLayout({

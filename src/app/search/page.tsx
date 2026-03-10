@@ -81,7 +81,7 @@ function SearchContent() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search people, businesses, skills, services..."
+            placeholder="Search professors, dining, tutors, opportunities..."
             className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           <button
@@ -100,6 +100,8 @@ function SearchContent() {
             <option value="">All types</option>
             <option value="person">People</option>
             <option value="business">Businesses</option>
+            <option value="site">Campus Sites</option>
+            <option value="opportunity">Opportunities</option>
           </select>
           <select
             value={filterStatus}
@@ -136,7 +138,7 @@ function SearchContent() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <span className="text-lg">
-                        {profile.type === "business" ? "🏪" : "👤"}
+                        {profile.type === "business" ? "🏪" : profile.type === "site" ? "🏢" : profile.type === "opportunity" ? "🎯" : "👤"}
                       </span>
                       <h3 className="font-semibold text-lg">{profile.displayName}</h3>
                       <span className={`text-xs px-2 py-1 rounded-full ${

@@ -97,12 +97,12 @@ export default function Home() {
   };
 
   const suggestions = [
-    "Find me a barber near campus",
-    "Who does lawn care in Tuscaloosa?",
-    "I need a math tutor for Calculus II",
-    "Book a haircut for tomorrow at 3pm",
-    "What's on the menu at local restaurants?",
-    "Get me a quote for pressure washing",
+    "Find my CS advisor",
+    "What's for lunch at Lakeside?",
+    "I need a calculus tutor",
+    "Research opportunities in AI",
+    "When is Gorgas Library open?",
+    "Scholarships for freshmen",
   ];
 
   return (
@@ -111,14 +111,13 @@ export default function Home() {
       <div className="flex-1 overflow-y-auto px-2 py-4 space-y-4">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="text-5xl mb-4">🌐</div>
+            <div className="text-5xl mb-4">🐘</div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              AgentNet
+              BamaAgent
             </h1>
             <p className="text-gray-500 mb-8 max-w-md">
-              Your AI-powered gateway to Tuscaloosa businesses and services.
-              Ask me anything — I&apos;ll search, find info, book appointments, and
-              more.
+              Your AI-powered campus assistant for The University of Alabama.
+              Find professors, dining, tutors, research opportunities, and local businesses.
             </p>
             <div className="grid grid-cols-2 gap-2 max-w-lg w-full">
               {suggestions.map((s) => (
@@ -196,7 +195,7 @@ export default function Home() {
                   <span className="animate-bounce" style={{ animationDelay: "150ms" }}>•</span>
                   <span className="animate-bounce" style={{ animationDelay: "300ms" }}>•</span>
                 </div>
-                Searching Tuscaloosa...
+                Searching campus...
               </div>
             </div>
           </div>
@@ -212,7 +211,7 @@ export default function Home() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about Tuscaloosa businesses, services, or people..."
+            placeholder="Ask about campus, dining, professors, tutoring, opportunities..."
             rows={1}
             className="flex-1 resize-none px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm max-h-32"
             style={{ minHeight: "44px" }}
@@ -226,7 +225,7 @@ export default function Home() {
           </button>
         </div>
         <p className="text-xs text-gray-400 text-center mt-2">
-          AgentNet uses AI to search and interact with local businesses via standardized APIs
+          BamaAgent — AI-powered campus assistant for The University of Alabama
         </p>
       </div>
     </div>

@@ -1,21 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { checkPublicRateLimit, rateLimited } from "@/lib/api-auth";
-import type { Prisma } from "@prisma/client";
+import type { EntityType, Prisma } from "@prisma/client";
 
 // ─── Synonym expansion for better keyword matching ─────
 const SYNONYMS: Record<string, string[]> = {
+  // Campus terms
+  professor: ["prof", "faculty", "instructor", "teacher"],
+  prof: ["professor", "faculty", "instructor"],
+  advisor: ["advising", "academic advisor", "counselor"],
+  tutor: ["tutoring", "math", "science", "writing", "education", "help"],
+  tutoring: ["tutor", "math", "science", "writing", "education"],
+  research: ["lab", "researcher", "study", "opportunity"],
+  internship: ["intern", "experience", "job", "opportunity"],
+  scholarship: ["financial aid", "funding", "grant", "award"],
+  dining: ["food", "eat", "cafeteria", "meal", "dining hall"],
+  cafeteria: ["dining", "food", "eat", "meal"],
+  library: ["study", "books", "reserve", "gorgas"],
+  rec: ["recreation", "gym", "fitness", "workout"],
+  gym: ["rec", "recreation", "fitness"],
+  cs: ["computer science", "computing", "programming"],
+  "computer science": ["cs", "computing", "programming"],
+  // Local business terms
   barber: ["barbershop", "haircut", "fade", "shave", "hair"],
   barbershop: ["barber", "haircut", "fade", "shave", "hair"],
   haircut: ["barber", "barbershop", "hair", "salon", "cuts"],
   salon: ["hair", "haircut", "braids", "stylist", "cosmetologist"],
   hair: ["barber", "barbershop", "salon", "haircut", "braids", "stylist"],
-  food: ["restaurant", "chicken", "coffee", "menu"],
+  food: ["restaurant", "chicken", "coffee", "menu", "dining"],
   restaurant: ["food", "menu", "dine", "takeout"],
   chicken: ["restaurant", "food", "wings", "tenders"],
   coffee: ["cafe", "latte", "espresso", "pastry"],
-  tutor: ["tutoring", "math", "science", "writing", "education"],
-  tutoring: ["tutor", "math", "science", "writing", "education"],
   auto: ["car", "repair", "mechanic", "oil", "brake"],
   car: ["auto", "repair", "mechanic"],
   mechanic: ["auto", "repair", "car"],
@@ -51,7 +66,7 @@ function buildSearchTerms(query: string): string[] {
   return [...terms];
 }
 
-// GET /api/search?q=...&type=person|business&status=...&category=...&page=1&limit=20
+// GET /api/search?q=...&type=person|business|site|opportunity&status=...&category=...&page=1&limit=20
 export async function GET(request: NextRequest) {
   if (!checkPublicRateLimit(request)) return rateLimited();
 
@@ -66,8 +81,9 @@ export async function GET(request: NextRequest) {
 
   const andConditions: Prisma.ProfileWhereInput[] = [{ isPublic: true }];
 
-  if (type === "person" || type === "business") {
-    andConditions.push({ type });
+  const VALID_TYPES: Set<string> = new Set(["person", "business", "site", "opportunity"]);
+  if (type && VALID_TYPES.has(type)) {
+    andConditions.push({ type: type as EntityType });
   }
 
   if (status) {
@@ -84,6 +100,9 @@ export async function GET(request: NextRequest) {
       { bio: { contains: term, mode: "insensitive" as const } },
       { location: { contains: term, mode: "insensitive" as const } },
       { category: { contains: term, mode: "insensitive" as const } },
+      { department: { contains: term, mode: "insensitive" as const } },
+      { title: { contains: term, mode: "insensitive" as const } },
+      { tags: { has: term } },
       { skills: { some: { name: { contains: term, mode: "insensitive" as const } } } },
       { skills: { some: { category: { contains: term, mode: "insensitive" as const } } } },
       { services: { some: { name: { contains: term, mode: "insensitive" as const } } } },
@@ -145,13 +164,17 @@ export async function GET(request: NextRequest) {
       location: p.location,
       status: p.status,
       avatarUrl: p.avatarUrl,
+      ...(p.campusRole && { campus_role: p.campusRole }),
+      ...(p.department && { department: p.department }),
+      ...(p.title && { title: p.title }),
+      ...(p.tags && p.tags.length > 0 && { tags: p.tags }),
       skills: p.skills.map((s: typeof p.skills[number]) => ({ name: s.name, category: s.category })),
       services: p.services.map((s: typeof p.services[number]) => ({
         name: s.name,
         category: s.category,
         price: s.price,
       })),
-      ...(p.type === "business" && {
+      ...(["business", "site"].includes(p.type) && {
         phone: p.phone,
         website: p.website,
         address: p.address,
