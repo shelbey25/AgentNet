@@ -49,7 +49,7 @@ async function main() {
       passwordHash: pw,
       name: "Dr. Sarah Mitchell",
       role: "person",
-      profile: {
+      profiles: {
         create: {
           type: "person",
           displayName: "Dr. Sarah Mitchell",
@@ -130,7 +130,7 @@ async function main() {
       passwordHash: pw,
       name: "Dr. James Rivera",
       role: "person",
-      profile: {
+      profiles: {
         create: {
           type: "person",
           displayName: "Dr. James Rivera",
@@ -196,7 +196,7 @@ async function main() {
       passwordHash: pw,
       name: "Dr. Anika Patel",
       role: "person",
-      profile: {
+      profiles: {
         create: {
           type: "person",
           displayName: "Dr. Anika Patel",
@@ -269,7 +269,7 @@ async function main() {
       passwordHash: pw,
       name: "Lisa Nguyen",
       role: "person",
-      profile: {
+      profiles: {
         create: {
           type: "person",
           displayName: "Lisa Nguyen",
@@ -327,7 +327,7 @@ async function main() {
       passwordHash: pw,
       name: "Marcus Thompson",
       role: "person",
-      profile: {
+      profiles: {
         create: {
           type: "person",
           displayName: "Marcus Thompson",
@@ -376,7 +376,7 @@ async function main() {
       passwordHash: pw,
       name: "Jordan Williams",
       role: "person",
-      profile: {
+      profiles: {
         create: {
           type: "person",
           displayName: "Jordan Williams",
@@ -426,7 +426,7 @@ async function main() {
       passwordHash: pw,
       name: "Maya Chen",
       role: "person",
-      profile: {
+      profiles: {
         create: {
           type: "person",
           displayName: "Maya Chen",
@@ -474,7 +474,7 @@ async function main() {
       passwordHash: pw,
       name: "Derek Brown",
       role: "person",
-      profile: {
+      profiles: {
         create: {
           type: "person",
           displayName: "Derek Brown",
@@ -529,7 +529,7 @@ async function main() {
       passwordHash: pw,
       name: "Lakeside Dining",
       role: "business",
-      profile: {
+      profiles: {
         create: {
           type: "site",
           displayName: "Lakeside Dining Hall",
@@ -551,22 +551,88 @@ async function main() {
           },
           infoSections: {
             create: [
+              // Menu root — overview of available stations
               {
                 section: "menu",
                 title: "Today's Menu",
                 data: {
-                  items: [
-                    { id: "grilled_chicken", name: "Grilled Chicken Breast", price: 0, station: "Grill", description: "Included with meal plan" },
-                    { id: "cheese_pizza", name: "Cheese Pizza", price: 0, station: "Pizza", description: "Fresh baked" },
-                    { id: "pepperoni_pizza", name: "Pepperoni Pizza", price: 0, station: "Pizza" },
-                    { id: "caesar_salad", name: "Caesar Salad", price: 0, station: "Salad Bar" },
-                    { id: "pasta_marinara", name: "Pasta Marinara", price: 0, station: "Comfort", description: "With garlic bread" },
-                    { id: "stir_fry", name: "Vegetable Stir Fry", price: 0, station: "International" },
-                    { id: "burger", name: "Cheeseburger", price: 0, station: "Grill", description: "1/4 lb patty with toppings" },
-                    { id: "chicken_tenders", name: "Chicken Tenders", price: 0, station: "Grill" },
-                    { id: "brownie", name: "Fudge Brownie", price: 0, station: "Dessert" },
-                  ],
                   note: "Menu rotates daily. All items included with meal plan swipe ($9.50 guest price).",
+                  stations: ["grill", "pizza", "salad", "comfort", "international", "desserts"],
+                },
+              },
+              // Menu subsections — one per station
+              {
+                section: "menu",
+                subsection: "grill",
+                title: "Grill Station",
+                data: {
+                  items: [
+                    { id: "grilled_chicken", name: "Grilled Chicken Breast", description: "Seasoned and char-grilled" },
+                    { id: "burger", name: "Cheeseburger", description: "1/4 lb patty with toppings bar" },
+                    { id: "chicken_tenders", name: "Chicken Tenders", description: "Hand-breaded, 4 pc" },
+                    { id: "veggie_burger", name: "Black Bean Veggie Burger", description: "Plant-based patty" },
+                  ],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "pizza",
+                title: "Pizza Station",
+                data: {
+                  items: [
+                    { id: "cheese_pizza", name: "Cheese Pizza", description: "Fresh baked, by the slice" },
+                    { id: "pepperoni_pizza", name: "Pepperoni Pizza", description: "Classic pepperoni" },
+                    { id: "bbq_chicken_pizza", name: "BBQ Chicken Pizza", description: "Rotates daily" },
+                  ],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "salad",
+                title: "Salad Bar",
+                data: {
+                  items: [
+                    { id: "caesar_salad", name: "Caesar Salad", description: "Romaine, croutons, parmesan" },
+                    { id: "garden_salad", name: "Garden Salad", description: "Mixed greens, build your own" },
+                    { id: "fruit_cup", name: "Fresh Fruit Cup", description: "Seasonal mix" },
+                  ],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "comfort",
+                title: "Comfort Station",
+                data: {
+                  items: [
+                    { id: "pasta_marinara", name: "Pasta Marinara", description: "With garlic bread" },
+                    { id: "mac_n_cheese", name: "Mac & Cheese", description: "Baked, creamy" },
+                    { id: "chicken_pot_pie", name: "Chicken Pot Pie", description: "Homestyle" },
+                  ],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "international",
+                title: "International Station",
+                data: {
+                  items: [
+                    { id: "stir_fry", name: "Vegetable Stir Fry", description: "Wok-tossed with soy glaze" },
+                    { id: "chicken_tikka", name: "Chicken Tikka Masala", description: "With basmati rice" },
+                    { id: "beef_tacos", name: "Street Tacos", description: "Corn tortillas, cilantro, onion" },
+                  ],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "desserts",
+                title: "Desserts",
+                data: {
+                  items: [
+                    { id: "brownie", name: "Fudge Brownie", description: "Rich chocolate" },
+                    { id: "cookie", name: "Chocolate Chip Cookie", description: "Warm, fresh-baked" },
+                    { id: "soft_serve", name: "Soft Serve Ice Cream", description: "Vanilla, chocolate, swirl" },
+                    { id: "fruit_cobbler", name: "Peach Cobbler", description: "Southern-style, warm" },
+                  ],
                 },
               },
               {
@@ -581,12 +647,22 @@ async function main() {
               },
               {
                 section: "location",
-                title: "Location",
+                title: "Location & Payment",
                 data: {
                   address: "500 Margaret Dr",
                   building: "Lakeside",
                   nearest_parking: "Lakeside Parking Deck",
                   accepts: ["Dining Dollars", "Bama Cash", "Credit/Debit"],
+                },
+              },
+              {
+                section: "pricing",
+                title: "Pricing",
+                data: {
+                  meal_plan_swipe: "Included with any meal plan",
+                  guest_price: "$9.50 per meal",
+                  dining_dollars: "Accepted",
+                  bama_cash: "Accepted",
                 },
               },
             ],
@@ -605,7 +681,7 @@ async function main() {
       passwordHash: pw,
       name: "Fresh Food Company",
       role: "business",
-      profile: {
+      profiles: {
         create: {
           type: "site",
           displayName: "Fresh Food Company (Burke)",
@@ -626,19 +702,84 @@ async function main() {
           },
           infoSections: {
             create: [
+              // Menu root — overview of stations
               {
                 section: "menu",
                 title: "Today's Menu",
                 data: {
-                  items: [
-                    { id: "omelet", name: "Made-to-Order Omelet", price: 0, station: "Breakfast", description: "Choose your fillings" },
-                    { id: "brick_pizza", name: "Brick Oven Margherita", price: 0, station: "Pizza" },
-                    { id: "bbq_chicken", name: "BBQ Chicken", price: 0, station: "Southern", description: "With cornbread" },
-                    { id: "garden_salad", name: "Garden Salad Bar", price: 0, station: "Salad" },
-                    { id: "tacos", name: "Chicken Tacos", price: 0, station: "Tex-Mex" },
-                    { id: "soup", name: "Soup of the Day", price: 0, station: "Comfort" },
-                  ],
                   note: "Meal plan swipe or $9.50 guest price.",
+                  stations: ["breakfast", "pizza", "southern", "salad", "tex_mex", "comfort"],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "breakfast",
+                title: "Breakfast Station",
+                data: {
+                  items: [
+                    { id: "omelet", name: "Made-to-Order Omelet", description: "Choose your fillings: cheese, peppers, ham, mushrooms, spinach" },
+                    { id: "pancakes", name: "Buttermilk Pancakes", description: "Stack of 3 with syrup and butter" },
+                    { id: "breakfast_burrito", name: "Breakfast Burrito", description: "Eggs, cheese, sausage, salsa" },
+                  ],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "pizza",
+                title: "Brick Oven Pizza",
+                data: {
+                  items: [
+                    { id: "brick_pizza", name: "Brick Oven Margherita", description: "Fresh mozzarella, basil, tomato" },
+                    { id: "meat_lovers", name: "Meat Lovers", description: "Pepperoni, sausage, bacon, ham" },
+                    { id: "veggie_pizza", name: "Garden Veggie", description: "Bell peppers, onions, mushrooms, olives" },
+                  ],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "southern",
+                title: "Southern Station",
+                data: {
+                  items: [
+                    { id: "bbq_chicken", name: "BBQ Chicken", description: "Slow-smoked with cornbread" },
+                    { id: "fried_catfish", name: "Fried Catfish", description: "Mississippi-style with hush puppies" },
+                    { id: "collard_greens", name: "Collard Greens", description: "Slow-cooked with smoked turkey" },
+                  ],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "salad",
+                title: "Fresh Salad Bar",
+                data: {
+                  items: [
+                    { id: "garden_salad", name: "Garden Salad Bar", description: "Build your own with 20+ toppings" },
+                    { id: "grain_bowl", name: "Grain Bowl", description: "Quinoa, roasted veggies, choice of protein" },
+                  ],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "tex_mex",
+                title: "Tex-Mex Station",
+                data: {
+                  items: [
+                    { id: "tacos", name: "Chicken Tacos", description: "Soft corn tortillas, pico, lime crema" },
+                    { id: "burrito_bowl", name: "Burrito Bowl", description: "Rice, beans, choice of protein, toppings" },
+                    { id: "quesadilla", name: "Cheese Quesadilla", description: "With salsa and sour cream" },
+                  ],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "comfort",
+                title: "Comfort Station",
+                data: {
+                  items: [
+                    { id: "soup", name: "Soup of the Day", description: "Rotates daily — ask staff" },
+                    { id: "grilled_cheese", name: "Grilled Cheese", description: "Sourdough with cheddar and gouda" },
+                    { id: "chicken_noodle", name: "Chicken Noodle Soup", description: "Homemade" },
+                  ],
                 },
               },
               {
@@ -673,7 +814,7 @@ async function main() {
       passwordHash: pw,
       name: "Gorgas Library",
       role: "business",
-      profile: {
+      profiles: {
         create: {
           type: "site",
           displayName: "Gorgas Library",
@@ -714,17 +855,73 @@ async function main() {
                   finals_hours: "24/7 during finals week",
                 },
               },
+              // Services root — overview
               {
                 section: "services",
                 title: "Library Services",
                 data: {
-                  services: [
-                    { name: "Study Rooms", description: "20 group study rooms, reserve online", capacity: "2-8 people" },
-                    { name: "Computer Lab", description: "100+ workstations, 1st floor", software: "Microsoft Office, SPSS, MATLAB, Adobe CC" },
-                    { name: "Printing", description: "B&W $0.05/page, Color $0.25/page. Accepts ACTCard." },
-                    { name: "Research Help", description: "Librarians available for 1-on-1 consultations" },
-                    { name: "Interlibrary Loan", description: "Request books/articles from other libraries" },
-                  ],
+                  overview: "Gorgas offers study rooms, computer labs, printing, research help, and interlibrary loans.",
+                  categories: ["study_rooms", "computers", "printing", "research_help", "interlibrary_loan"],
+                },
+              },
+              {
+                section: "services",
+                subsection: "study_rooms",
+                title: "Study Rooms",
+                data: {
+                  count: 20,
+                  capacity: "2-8 people per room",
+                  how_to_reserve: "Reserve online at lib.ua.edu/rooms or at the front desk",
+                  max_duration: "4 hours per reservation",
+                  equipment: ["Whiteboard", "HDMI display", "Power outlets"],
+                  floors: "2nd and 3rd floors",
+                },
+              },
+              {
+                section: "services",
+                subsection: "computers",
+                title: "Computer Lab",
+                data: {
+                  workstations: 100,
+                  location: "1st floor, east wing",
+                  software: ["Microsoft Office", "SPSS", "MATLAB", "Adobe Creative Cloud", "AutoCAD"],
+                  hours: "Same as library hours",
+                  note: "Login with your myBama credentials",
+                },
+              },
+              {
+                section: "services",
+                subsection: "printing",
+                title: "Printing Services",
+                data: {
+                  bw_price: "$0.05/page",
+                  color_price: "$0.25/page",
+                  payment: "ACTCard (Bama Cash)",
+                  locations: ["1st floor near entrance", "2nd floor study area", "3rd floor quiet zone"],
+                  formats: ["Letter", "Legal", "11x17"],
+                  scanning: "Free scanning at all print stations",
+                },
+              },
+              {
+                section: "services",
+                subsection: "research_help",
+                title: "Research Help",
+                data: {
+                  description: "Get 1-on-1 help from a research librarian",
+                  topics: ["Database searching", "Citation management", "Literature reviews", "Data analysis resources"],
+                  how_to_book: "Schedule via lib.ua.edu/research-consult or drop in at the Reference Desk (2nd floor)",
+                  walk_in_hours: "Mon-Fri 9 AM - 5 PM",
+                },
+              },
+              {
+                section: "services",
+                subsection: "interlibrary_loan",
+                title: "Interlibrary Loan",
+                data: {
+                  description: "Request books and articles from other university libraries",
+                  turnaround: "Articles: 1-3 days, Books: 5-10 business days",
+                  cost: "Free for UA students and faculty",
+                  how_to_request: "Submit request at lib.ua.edu/ill",
                 },
               },
             ],
@@ -743,7 +940,7 @@ async function main() {
       passwordHash: pw,
       name: "Student Recreation Center",
       role: "business",
-      profile: {
+      profiles: {
         create: {
           type: "site",
           displayName: "Student Recreation Center",
@@ -783,18 +980,88 @@ async function main() {
                   pool_hours: "Mon-Fri 6:00 AM-9:00 PM, Sat-Sun 10:00 AM-6:00 PM",
                 },
               },
+              // Facilities root
               {
-                section: "services",
+                section: "facilities",
                 title: "Facilities & Programs",
                 data: {
-                  facilities: [
-                    { name: "Weight Room", floor: "1st", description: "Free weights, machines, squat racks" },
-                    { name: "Cardio Deck", floor: "2nd", description: "Treadmills, bikes, ellipticals" },
-                    { name: "Pool", floor: "1st", description: "25-yard lap pool and leisure pool" },
-                    { name: "Basketball Courts", floor: "1st", description: "4 full courts" },
-                    { name: "Climbing Wall", floor: "1st", description: "30-foot indoor wall, gear provided" },
+                  overview: "Weight room, cardio deck, pool, courts, climbing wall, and group fitness classes.",
+                  areas: ["weights", "cardio", "pool", "courts", "climbing", "group_fitness"],
+                },
+              },
+              {
+                section: "facilities",
+                subsection: "weights",
+                title: "Weight Room",
+                data: {
+                  floor: "1st",
+                  equipment: ["Free weights (5-120 lb dumbbells)", "Squat racks (8)", "Bench press stations (6)", "Cable machines", "Smith machines (2)", "Deadlift platforms (4)"],
+                  peak_hours: "4:00-7:00 PM weekdays",
+                  tip: "Early mornings (6-8 AM) have the shortest wait times.",
+                },
+              },
+              {
+                section: "facilities",
+                subsection: "cardio",
+                title: "Cardio Deck",
+                data: {
+                  floor: "2nd",
+                  equipment: ["Treadmills (30)", "Ellipticals (20)", "Stationary bikes (15)", "Rowing machines (8)", "Stair climbers (6)"],
+                  features: "Each machine has a personal TV screen and phone charging port.",
+                },
+              },
+              {
+                section: "facilities",
+                subsection: "pool",
+                title: "Aquatic Center",
+                data: {
+                  pools: [
+                    { name: "Lap Pool", description: "25-yard, 6 lanes", temperature: "78-80°F" },
+                    { name: "Leisure Pool", description: "Warm water, great for relaxation", temperature: "84-86°F" },
                   ],
-                  group_fitness: ["Yoga", "Spin", "HIIT", "Zumba", "Pilates", "Boxing"],
+                  hours: "Mon-Fri 6:00 AM-9:00 PM, Sat-Sun 10:00 AM-6:00 PM",
+                  requirements: "Swimsuit required. Goggles available at the front desk.",
+                },
+              },
+              {
+                section: "facilities",
+                subsection: "courts",
+                title: "Basketball & Volleyball Courts",
+                data: {
+                  courts: [
+                    { type: "Basketball", count: 4, floor: "1st" },
+                    { type: "Volleyball", count: 2, floor: "1st" },
+                  ],
+                  reservation: "Reserve 1 hour at the front desk or online. Walk-in if available.",
+                  open_gym: "Courts are open gym when not reserved.",
+                },
+              },
+              {
+                section: "facilities",
+                subsection: "climbing",
+                title: "Climbing Wall",
+                data: {
+                  height: "30 feet",
+                  routes: 15,
+                  difficulty: "5.6 to 5.12 (beginner to advanced)",
+                  gear: "Harness, shoes, and chalk provided free.",
+                  belay_certification: "Free 30-min class required for first-time climbers.",
+                },
+              },
+              {
+                section: "facilities",
+                subsection: "group_fitness",
+                title: "Group Fitness Classes",
+                data: {
+                  classes: [
+                    { name: "Yoga", schedule: "MWF 8:00 AM, TTh 5:30 PM", level: "All" },
+                    { name: "Spin", schedule: "MWF 6:30 AM, TTh 4:30 PM", level: "All" },
+                    { name: "HIIT", schedule: "TTh 6:00 PM", level: "Intermediate" },
+                    { name: "Zumba", schedule: "MW 5:00 PM", level: "All" },
+                    { name: "Pilates", schedule: "F 10:00 AM", level: "All" },
+                    { name: "Boxing", schedule: "TTh 7:00 PM", level: "Intermediate" },
+                  ],
+                  note: "All classes free with student membership. Sign up at the front desk or online.",
                 },
               },
             ],
@@ -819,7 +1086,7 @@ async function main() {
       passwordHash: pw,
       name: "ML Research Position",
       role: "person",
-      profile: {
+      profiles: {
         create: {
           type: "opportunity",
           displayName: "Undergraduate ML Research Assistant",
@@ -881,7 +1148,7 @@ async function main() {
       passwordHash: pw,
       name: "SWE Internship",
       role: "person",
-      profile: {
+      profiles: {
         create: {
           type: "opportunity",
           displayName: "Software Engineering Internship — BBVA (Birmingham)",
@@ -942,7 +1209,7 @@ async function main() {
       passwordHash: pw,
       name: "Robotics Research",
       role: "person",
-      profile: {
+      profiles: {
         create: {
           type: "opportunity",
           displayName: "Robotics Lab Research Assistant",
@@ -976,7 +1243,7 @@ async function main() {
       passwordHash: pw,
       name: "Crimson Achievement Award",
       role: "person",
-      profile: {
+      profiles: {
         create: {
           type: "opportunity",
           displayName: "Crimson Achievement Scholarship",
@@ -1042,7 +1309,7 @@ async function main() {
       passwordHash: pw,
       name: "Crimson Cuts Barbershop",
       role: "business",
-      profile: {
+      profiles: {
         create: {
           type: "business",
           displayName: "Crimson Cuts Barbershop",
@@ -1075,15 +1342,49 @@ async function main() {
           },
           infoSections: {
             create: [
+              // Services root
               {
                 section: "services",
                 title: "Services & Pricing",
                 data: {
-                  services: [
-                    { id: "mens_haircut", name: "Men's Haircut", duration: 30, price: 20 },
-                    { id: "beard_trim", name: "Beard Trim", duration: 15, price: 10 },
-                    { id: "cut_beard_combo", name: "Haircut + Beard Combo", duration: 45, price: 28 },
-                    { id: "hot_towel_shave", name: "Hot Towel Shave", duration: 30, price: 25 },
+                  overview: "Full-service barbershop. Walk-ins welcome, appointments preferred.",
+                  categories: ["haircuts", "beard", "specialty"],
+                },
+              },
+              {
+                section: "services",
+                subsection: "haircuts",
+                title: "Haircuts",
+                data: {
+                  items: [
+                    { id: "mens_haircut", name: "Men's Haircut", price: 20, duration: 30, description: "Classic or modern cuts with hot towel" },
+                    { id: "fade", name: "Skin Fade", price: 25, duration: 35, description: "Low, mid, or high taper" },
+                    { id: "kids_cut", name: "Kids Cut (under 12)", price: 15, duration: 20, description: "Simple, clean cuts" },
+                    { id: "buzz", name: "Buzz Cut", price: 12, duration: 15, description: "Uniform length" },
+                  ],
+                },
+              },
+              {
+                section: "services",
+                subsection: "beard",
+                title: "Beard Services",
+                data: {
+                  items: [
+                    { id: "beard_trim", name: "Beard Trim", price: 10, duration: 15, description: "Shape up and line work" },
+                    { id: "hot_towel_shave", name: "Hot Towel Shave", price: 25, duration: 30, description: "Premium straight razor shave" },
+                    { id: "beard_design", name: "Beard Design", price: 15, duration: 20, description: "Custom beard shaping" },
+                  ],
+                },
+              },
+              {
+                section: "services",
+                subsection: "specialty",
+                title: "Specialty & Combos",
+                data: {
+                  items: [
+                    { id: "cut_beard_combo", name: "Haircut + Beard Combo", price: 28, duration: 45, description: "Full service cut and beard" },
+                    { id: "prom_package", name: "Event Package", price: 40, duration: 60, description: "Haircut, shave, styling for special occasions" },
+                    { id: "hair_color", name: "Men's Color", price: 35, duration: 45, description: "Full color or highlights" },
                   ],
                 },
               },
@@ -1096,6 +1397,16 @@ async function main() {
                     { day: "Saturday", open: "8:00 AM", close: "5:00 PM" },
                     { day: "Sunday", open: "Closed" },
                   ],
+                },
+              },
+              {
+                section: "policies",
+                title: "Policies",
+                data: {
+                  walk_ins: "Welcome, but wait times vary (avg 15-30 min)",
+                  appointments: "Book online at crimsoncutsbarber.com or via BamaAgent",
+                  cancellation: "Please cancel 2 hours in advance",
+                  payment: ["Cash", "Card", "Venmo", "Cash App"],
                 },
               },
             ],
@@ -1114,7 +1425,7 @@ async function main() {
       passwordHash: pw,
       name: "Black Warrior Coffee Co.",
       role: "business",
-      profile: {
+      profiles: {
         create: {
           type: "business",
           displayName: "Black Warrior Coffee Co.",
@@ -1144,19 +1455,55 @@ async function main() {
           },
           infoSections: {
             create: [
+              // Menu root
               {
                 section: "menu",
                 title: "Menu",
                 data: {
+                  overview: "Craft coffee, tea, pastries, and light bites. Free Wi-Fi.",
+                  categories: ["hot_drinks", "cold_drinks", "food"],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "hot_drinks",
+                title: "Hot Drinks",
+                data: {
                   items: [
-                    { id: "drip", name: "Drip Coffee", price: 3.00, category: "Hot Drinks" },
-                    { id: "latte", name: "Latte", price: 4.50, category: "Hot Drinks" },
-                    { id: "cappuccino", name: "Cappuccino", price: 4.50, category: "Hot Drinks" },
-                    { id: "americano", name: "Americano", price: 3.50, category: "Hot Drinks" },
-                    { id: "cold_brew", name: "Cold Brew", price: 5.00, category: "Cold Drinks" },
-                    { id: "iced_latte", name: "Iced Latte", price: 5.00, category: "Cold Drinks" },
-                    { id: "croissant", name: "Butter Croissant", price: 3.50, category: "Pastries" },
-                    { id: "muffin", name: "Blueberry Muffin", price: 3.00, category: "Pastries" },
+                    { id: "drip", name: "Drip Coffee", price: 3.00, sizes: ["S", "M", "L"], description: "House blend, Sumatran single-origin available" },
+                    { id: "latte", name: "Latte", price: 4.50, sizes: ["S", "M", "L"], description: "Espresso + steamed milk. Add flavor $0.50" },
+                    { id: "cappuccino", name: "Cappuccino", price: 4.50, sizes: ["S", "M"], description: "Equal parts espresso, steamed milk, foam" },
+                    { id: "americano", name: "Americano", price: 3.50, sizes: ["S", "M", "L"], description: "Espresso + hot water" },
+                    { id: "mocha", name: "Mocha", price: 5.00, sizes: ["S", "M", "L"], description: "Espresso, chocolate, steamed milk, whip" },
+                    { id: "hot_chocolate", name: "Hot Chocolate", price: 3.50, sizes: ["S", "M"], description: "Rich cocoa with whipped cream" },
+                  ],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "cold_drinks",
+                title: "Cold Drinks",
+                data: {
+                  items: [
+                    { id: "cold_brew", name: "Cold Brew", price: 5.00, sizes: ["M", "L"], description: "24-hour slow steeped" },
+                    { id: "nitro", name: "Nitro Cold Brew", price: 5.50, sizes: ["M", "L"], description: "Nitrogen-infused, creamy" },
+                    { id: "iced_latte", name: "Iced Latte", price: 5.00, sizes: ["M", "L"], description: "Espresso + cold milk over ice" },
+                    { id: "lemonade", name: "Fresh Lemonade", price: 3.50, sizes: ["M", "L"], description: "House-made, seasonal fruit options" },
+                    { id: "smoothie", name: "Fruit Smoothie", price: 6.00, sizes: ["M", "L"], description: "Mango, berry, or banana" },
+                  ],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "food",
+                title: "Food & Pastries",
+                data: {
+                  items: [
+                    { id: "croissant", name: "Butter Croissant", price: 3.50, description: "Flaky, golden, fresh daily" },
+                    { id: "muffin", name: "Blueberry Muffin", price: 3.00, description: "Made in-house" },
+                    { id: "bagel", name: "Everything Bagel", price: 2.50, description: "With cream cheese $1 extra" },
+                    { id: "avocado_toast", name: "Avocado Toast", price: 7.50, description: "Sourdough, avocado, everything seasoning, microgreens" },
+                    { id: "breakfast_sandwich", name: "Breakfast Sandwich", price: 6.50, description: "Egg, cheese, bacon on ciabatta" },
                   ],
                 },
               },
@@ -1188,7 +1535,7 @@ async function main() {
       passwordHash: pw,
       name: "Tuscaloosa Chicken House",
       role: "business",
-      profile: {
+      profiles: {
         create: {
           type: "business",
           displayName: "Tuscaloosa Chicken House",
@@ -1211,22 +1558,79 @@ async function main() {
           },
           infoSections: {
             create: [
+              // Menu root
               {
                 section: "menu",
                 title: "Menu",
                 data: {
+                  overview: "Southern fried chicken and sides. Student meal deals available.",
+                  categories: ["mains", "wings", "sides", "drinks", "deals"],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "mains",
+                title: "Main Plates",
+                data: {
                   items: [
-                    { id: "chicken_plate", name: "Fried Chicken Plate (3pc)", price: 9.99, description: "With 2 sides and roll" },
+                    { id: "chicken_plate", name: "Fried Chicken Plate (3pc)", price: 9.99, description: "With 2 sides and a roll" },
                     { id: "tender_basket", name: "Chicken Tender Basket", price: 8.49, description: "4 tenders with fries and sauce" },
+                    { id: "chicken_sandwich", name: "Chicken Sandwich", price: 7.49, description: "Fried or grilled, with slaw and pickles" },
+                    { id: "catfish_plate", name: "Fried Catfish Plate", price: 10.99, description: "With hush puppies and 2 sides" },
+                  ],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "wings",
+                title: "Wings",
+                data: {
+                  items: [
                     { id: "wings_6", name: "Wings (6pc)", price: 7.99, description: "Choice of sauce" },
                     { id: "wings_12", name: "Wings (12pc)", price: 13.99, description: "Choice of sauce" },
-                    { id: "chicken_sandwich", name: "Chicken Sandwich", price: 7.49, description: "With slaw and pickles" },
-                    { id: "student_deal", name: "Student Meal Deal", price: 6.99, description: "2 tenders, fries, drink — show student ID" },
-                    { id: "mac_cheese", name: "Mac & Cheese (side)", price: 2.99 },
-                    { id: "coleslaw", name: "Coleslaw (side)", price: 1.99 },
-                    { id: "fries", name: "Fries (side)", price: 2.49 },
-                    { id: "sweet_tea", name: "Sweet Tea", price: 1.99 },
+                    { id: "wings_24", name: "Wings (24pc)", price: 24.99, description: "Party size — choice of 2 sauces" },
                   ],
+                  sauces: ["Buffalo", "BBQ", "Lemon Pepper", "Garlic Parmesan", "Mango Habanero", "Plain"],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "sides",
+                title: "Sides",
+                data: {
+                  items: [
+                    { id: "mac_cheese", name: "Mac & Cheese", price: 2.99 },
+                    { id: "coleslaw", name: "Coleslaw", price: 1.99 },
+                    { id: "fries", name: "French Fries", price: 2.49 },
+                    { id: "cornbread", name: "Cornbread (2 pc)", price: 1.49 },
+                    { id: "baked_beans", name: "Baked Beans", price: 2.49 },
+                    { id: "green_beans", name: "Green Beans", price: 2.49 },
+                  ],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "drinks",
+                title: "Drinks",
+                data: {
+                  items: [
+                    { id: "sweet_tea", name: "Sweet Tea", price: 1.99, sizes: ["M", "L"] },
+                    { id: "unsweet_tea", name: "Unsweet Tea", price: 1.99, sizes: ["M", "L"] },
+                    { id: "lemonade", name: "Lemonade", price: 2.49, sizes: ["M", "L"] },
+                    { id: "fountain", name: "Fountain Drink", price: 1.99, sizes: ["M", "L"] },
+                  ],
+                },
+              },
+              {
+                section: "menu",
+                subsection: "deals",
+                title: "Student Deals",
+                data: {
+                  items: [
+                    { id: "student_deal", name: "Student Meal Deal", price: 6.99, description: "2 tenders, fries, drink — show student ID" },
+                    { id: "game_day_bucket", name: "Game Day Bucket", price: 19.99, description: "12 tenders, 2 large sides, 4 sauces — game days only" },
+                  ],
+                  note: "Must show valid UA student ID for student deals.",
                 },
               },
               {
@@ -1238,6 +1642,17 @@ async function main() {
                     { day: "Sunday", open: "12:00 PM", close: "8:00 PM" },
                   ],
                   game_day: "Open until midnight on home game days!",
+                },
+              },
+              {
+                section: "delivery",
+                title: "Delivery Info",
+                data: {
+                  campus_delivery: true,
+                  delivery_fee: "$3.00",
+                  minimum_order: "$15.00",
+                  delivery_area: "UA campus and surrounding area (2 mi radius)",
+                  estimated_time: "30-45 minutes",
                 },
               },
             ],
@@ -1262,7 +1677,7 @@ async function main() {
       passwordHash: pw,
       name: "Ashley Morgan",
       role: "person",
-      profile: {
+      profiles: {
         create: {
           type: "person",
           displayName: "Ashley Morgan",
@@ -1310,7 +1725,7 @@ async function main() {
       passwordHash: pw,
       name: "Devon Brooks",
       role: "person",
-      profile: {
+      profiles: {
         create: {
           type: "person",
           displayName: "Devon Brooks",
@@ -1355,8 +1770,8 @@ async function main() {
   // SAMPLE DATA
   // =====================================================
 
-  const advisorProfile = await prisma.profile.findUnique({ where: { userId: advisorMarcus.id } });
-  const tutorProfile = await prisma.profile.findUnique({ where: { userId: tutorJordan.id } });
+  const advisorProfile = await prisma.profile.findFirst({ where: { userId: advisorMarcus.id } });
+  const tutorProfile = await prisma.profile.findFirst({ where: { userId: tutorJordan.id } });
 
   if (advisorProfile && tutorProfile) {
     await prisma.message.create({

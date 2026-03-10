@@ -126,7 +126,7 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  profile            Profile?
+  profiles           Profile[]
   sentMessages       Message[]          @relation("SentMessages")
   receivedMessages   Message[]          @relation("ReceivedMessages")
   apiKeys            ApiKey[]
@@ -144,7 +144,7 @@ model User {
 
 model Profile {
   id          String        @id @default(uuid())
-  userId      String        @unique
+  userId      String
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   type        EntityType
   displayName String
@@ -184,6 +184,12 @@ model Profile {
   isClaimable     Boolean   @default(false)
   claimedAt       DateTime?
 
+  // ─── Webhook settings
+  webhookUrl           String?
+  webhookSecret        String?
+  webhookEnabled       Boolean  @default(false)
+  enabledWebhookEvents String[] @default([])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -198,7 +204,9 @@ model Profile {
   quotes          Quote[]
   actionLogs      ActionLog[]
   claimRequests   ClaimRequest[]
+  webhookLogs     WebhookLog[]
 
+  @@index([userId])
   @@index([status])
   @@index([type])
   @@index([location])
@@ -536,4 +544,27 @@ model ClaimRequest {
   @@index([profileId])
   @@index([userId])
   @@map("claim_requests")
+}
+
+// ─── WEBHOOK LOGS ──────────────────────────────────────
+// Tracks webhook deliveries for debugging and retry
+
+model WebhookLog {
+  id          String   @id @default(uuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id])
+  event       String   // "booking", "order", "quote", "service_request", "message"
+  payload     Json     // Full payload sent
+  url         String   // Webhook URL at time of delivery
+  statusCode  Int?     // HTTP response code (null if network error)
+  response    String?  // Response body (truncated)
+  success     Boolean  @default(false)
+  attempts    Int      @default(1)
+  error       String?  // Error message if failed
+  deliveredAt DateTime @default(now())
+
+  @@index([profileId])
+  @@index([event])
+  @@index([deliveredAt])
+  @@map("webhook_logs")
 }

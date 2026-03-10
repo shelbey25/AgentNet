@@ -14,7 +14,7 @@ export async function DELETE(
 
   const { id } = await params;
 
-  const profile = await prisma.profile.findUnique({
+  const profile = await prisma.profile.findFirst({
     where: { userId: session.user.id },
   });
   if (!profile) {

@@ -13,6 +13,7 @@ import {
   handleLocalQuote,
   handleLocalServiceRequest,
 } from "./local";
+import { fireWebhook } from "@/lib/webhook";
 // Ensure named adapters are registered
 import "./named-adapters";
 
@@ -66,7 +67,7 @@ export async function dispatchAction(
     const namedAdapter = getAdapter(integrationType);
     const adapter = namedAdapter || genericRestAdapter;
 
-    return adapter.execute(
+    const result = await adapter.execute(
       {
         url: endpoint.url,
         method: endpoint.method,
@@ -74,20 +75,33 @@ export async function dispatchAction(
       },
       payload
     );
+
+    // Fire webhook on success
+    if (result.success) {
+      fireWebhook(profileId, action, { ...payload, result: result.data });
+    }
+
+    return result;
   }
 
   // 5. Otherwise, handle locally (business uses platform as backend)
+  let result: AdapterResponse;
   switch (action) {
     case "order":
-      return handleLocalOrder(profileId, payload);
+      result = await handleLocalOrder(profileId, payload);
+      break;
     case "book":
-      return handleLocalBooking(profileId, payload);
+      result = await handleLocalBooking(profileId, payload);
+      break;
     case "availability":
-      return handleLocalAvailability(profileId, payload);
+      result = await handleLocalAvailability(profileId, payload);
+      break;
     case "quote":
-      return handleLocalQuote(profileId, payload);
+      result = await handleLocalQuote(profileId, payload);
+      break;
     case "request_service":
-      return handleLocalServiceRequest(profileId, payload);
+      result = await handleLocalServiceRequest(profileId, payload);
+      break;
     default:
       return {
         success: false,
@@ -95,6 +109,13 @@ export async function dispatchAction(
         statusCode: 400,
       };
   }
+
+  // Fire webhook on success
+  if (result.success) {
+    fireWebhook(profileId, action, { ...payload, result: result.data });
+  }
+
+  return result;
 }
 
 // Log action for audit trail

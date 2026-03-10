@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         passwordHash,
         name,
         role: userRole,
-        profile: {
+        profiles: {
           create: {
             type: entityType,
             displayName: name,
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
           create: {},
         },
       },
-      include: { profile: true },
+      include: { profiles: true },
     });
 
     return NextResponse.json(
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         name: user.name,
         role: user.role,
-        profileId: user.profile?.id,
+        profileId: user.profiles[0]?.id,
       },
       { status: 201 }
     );

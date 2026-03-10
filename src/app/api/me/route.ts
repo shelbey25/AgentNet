@@ -12,7 +12,7 @@ export async function GET() {
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
-      profile: {
+      profiles: {
         include: {
           skills: true,
           services: true,
@@ -31,7 +31,8 @@ export async function GET() {
     email: user.email,
     name: user.name,
     role: user.role,
-    profile: user.profile,
+    profiles: user.profiles,
+    profile: user.profiles[0] || null,
     messageSettings: user.messageSettings,
   });
 }

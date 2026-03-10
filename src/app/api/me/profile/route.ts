@@ -23,9 +23,12 @@ export async function PUT(request: NextRequest) {
     hours,
   } = body;
 
-  const profile = await prisma.profile.findUnique({
-    where: { userId: session.user.id },
-  });
+  // Accept optional profileId to target a specific entity
+  const profileId = body.profileId as string | undefined;
+
+  const profile = profileId
+    ? await prisma.profile.findFirst({ where: { id: profileId, userId: session.user.id } })
+    : await prisma.profile.findFirst({ where: { userId: session.user.id } });
 
   if (!profile) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
@@ -40,7 +43,7 @@ export async function PUT(request: NextRequest) {
   ];
 
   const updated = await prisma.profile.update({
-    where: { userId: session.user.id },
+    where: { id: profile.id },
     data: {
       ...(displayName !== undefined && { displayName }),
       ...(bio !== undefined && { bio }),

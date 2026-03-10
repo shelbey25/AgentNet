@@ -36,39 +36,54 @@ Available endpoints:
 SEARCH & DISCOVERY:
 - GET /api/v1/search?q=<query>&type=<person|business|site|opportunity>&status=<available|hiring|looking_for_work>&capability=<ordering|booking|quotes|availability>&category=<restaurant|salon|etc>&campus_role=<professor|student|tutor|advisor>&department=<Computer Science|etc>&opportunity_type=<research|internship|scholarship|job>
   Search across all entity types. Returns IDs, capabilities, campus fields, and available actions.
-- GET /api/v1/search/text?q=<query>&...
-  Alias for /search — same parameters, same results.
+
+BROWSE (hierarchical drill-down — preferred for menus, services, facilities, etc.):
+- GET /api/v1/browse/<entity_id>
+  Get entity overview + list of available data sections (menu, services, hours, facilities, etc.)
+  Response includes "children" array with section names and paths.
+- GET /api/v1/browse/<entity_id>/<section>
+  Drill into a section. If it has sub-sections, returns "children" array.
+  If it's a leaf, returns "data".
+- GET /api/v1/browse/<entity_id>/<section>/<subsection>
+  Get the actual data (e.g., specific menu items, facility details).
+
+IMPORTANT: Use browse BEFORE the full info endpoint. Browse returns only what you need at each level, keeping responses small. Follow the paths returned in each response to drill deeper.
+
+Example browse flow:
+1. GET /api/v1/browse/<coffee_shop_id> → sections: [menu, hours]
+2. GET /api/v1/browse/<coffee_shop_id>/menu → children: [hot_drinks, cold_drinks, food]
+3. GET /api/v1/browse/<coffee_shop_id>/menu/hot_drinks → data: {items: [Latte, Cappuccino, ...]}
 
 PROFILE:
 - GET /api/v1/profile/<id>
   Get full profile with capabilities, services, campus info (department, title, office hours), or opportunity details (deadline, eligibility, compensation).
 
-INFO SECTIONS (structured entity data):
+INFO SECTIONS (full data dump — use browse instead when possible):
 - GET /api/v1/info/<entity_id>
-  List all info sections (menu, services, hours, office_hours, research, courses, etc.)
+  List all info sections
 - GET /api/v1/info/<entity_id>/<section>
-  Get specific section data (e.g., /info/<id>/menu, /info/<id>/office_hours, /info/<id>/research)
+  Get specific section data
 - GET /api/v1/info/<entity_id>/<section>/<subsection>
   Get a subsection
 
 ACTIONS:
 - GET /api/v1/availability?business_id=<id>&date=<YYYY-MM-DD>&service=<name>
-  Check available time slots. Works for businesses and campus entities with booking capability.
+  Check available time slots.
 - POST /api/v1/book  body: {"business_id":"<id>","service":"<name>","time":"<ISO datetime>"}
-  Book an appointment (office hours, tutoring sessions, haircuts, etc.).
+  Book an appointment.
 - POST /api/v1/order  body: {"business_id":"<id>","items":[{"id":"<item_id>","qty":<n>}],"pickup_time":"<HH:MM>"}
   Place an order (dining, restaurants, etc.)
 - POST /api/v1/message  body: {"recipient_id":"<id>","message":"<text>","subject":"<subject>"}
   Send a message to any entity.
 - POST /api/v1/request_service  body: {"provider_id":"<id>","service":"<name>","time_preference":"<pref>"}
-  Request a service (tutoring, advising, etc.).
+  Request a service.
 - POST /api/v1/get_quote  body: {"business_id":"<id>","service":"<name>","details":{...}}
-  Request a price quote from a business.
+  Request a price quote.
 
 STATUS / FOLLOW-UP:
-- GET /api/v1/order/<order_id>          — Get order status, payment info
+- GET /api/v1/order/<order_id>          — Get order status
 - GET /api/v1/booking/<booking_id>      — Get booking status
-- GET /api/v1/quote/<quote_id>          — Get quote status and price
+- GET /api/v1/quote/<quote_id>          — Get quote status
 - GET /api/v1/message/<message_id>      — Get message delivery status
 
 USER MEMORY (personalization):
@@ -76,12 +91,12 @@ USER MEMORY (personalization):
 - POST /api/v1/memory  body: {"key":"<key>","value":"<value>"}  — Save a preference
 
 IMPORTANT:
-- Always search first to find entity IDs before taking actions.
-- Use the profile endpoint to see what capabilities an entity supports.
-- Use the info endpoint to get menus, services lists, office hours, research info, etc.
+- Always search first to find entity IDs, then browse to explore their data.
+- Use browse to progressively drill into menus, services, facilities — don't fetch everything at once.
+- Follow the "children" paths in browse responses to go deeper.
+- Only fetch the sections relevant to the user's question.
 - For campus questions about professors/advisors, search by campus_role or department.
-- For dining, search by type=site and category or keyword.
-- For opportunities, search by type=opportunity and opportunity_type.
+- For dining, search type=site, then browse into menu > specific station.
 - After placing an order, check the payment_mode and next_step in the response.
 - Dates use YYYY-MM-DD format. Times use ISO 8601 or HH:MM format.`,
       parameters: {
@@ -120,9 +135,19 @@ You have access to the AgentNet platform API through the agentnet_api tool. The 
 WORKFLOW:
 1. When a user asks about something, SEARCH first to find relevant results
 2. Use filters: type= (person/business/site/opportunity), campus_role= (professor/advisor/tutor), department=, opportunity_type=
-3. GET the profile to see full details, capabilities, and available actions
-4. GET info sections for detailed data (menus, office hours, research topics, courses)
-5. Perform actions (book office hours, order food, request tutoring, send messages)
+3. BROWSE the entity to see what data sections are available (menus, services, facilities, etc.)
+4. Drill into the specific section the user cares about — do NOT fetch everything at once
+5. Use the profile endpoint only when you need capabilities or basic contact info
+6. Perform actions (book office hours, order food, request tutoring, send messages)
+
+BROWSE PATTERN (use this for menus, services, facilities, course lists, etc.):
+- First: GET /api/v1/browse/<id> to see available sections
+- Then: follow the "children" paths to drill into the section the user needs
+- Example for "what desserts does Lakeside have?":
+  1. Search for Lakeside → get ID
+  2. Browse /api/v1/browse/<id>/menu → see station sub-sections
+  3. Browse /api/v1/browse/<id>/menu/desserts → get actual dessert items
+- This keeps responses small and focused
 
 CAMPUS-SPECIFIC GUIDANCE:
 - For "who teaches X": search with the subject as query and campus_role=professor  

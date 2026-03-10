@@ -9,14 +9,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const profile = await prisma.profile.findUnique({
-    where: { userId: session.user.id },
-  });
+  const { name, description, category, price, profileId: targetProfileId } = await request.json();
+
+  const profile = targetProfileId
+    ? await prisma.profile.findFirst({ where: { id: targetProfileId, userId: session.user.id } })
+    : await prisma.profile.findFirst({ where: { userId: session.user.id } });
   if (!profile) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
-
-  const { name, description, category, price } = await request.json();
   if (!name) {
     return NextResponse.json(
       { error: "Service name is required" },
@@ -44,7 +44,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const profile = await prisma.profile.findUnique({
+  const profile = await prisma.profile.findFirst({
     where: { userId: session.user.id },
   });
   if (!profile) {

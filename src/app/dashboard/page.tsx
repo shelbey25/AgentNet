@@ -26,6 +26,7 @@ interface UserData {
   name: string;
   role: string;
   profile: Profile | null;
+  profiles: Profile[];
 }
 
 export default function DashboardPage() {

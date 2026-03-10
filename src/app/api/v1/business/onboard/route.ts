@@ -32,15 +32,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "name is required" }, { status: 400 });
   }
 
-  // Get or create profile
-  let profile = await prisma.profile.findUnique({
-    where: { userId: session.user.id },
-  });
+  // Get or create profile (use profileId from body if provided, else first business profile)
+  const targetProfileId = body.profileId as string | undefined;
+  let profile = targetProfileId
+    ? await prisma.profile.findFirst({ where: { id: targetProfileId, userId: session.user.id } })
+    : await prisma.profile.findFirst({ where: { userId: session.user.id, type: "business" } });
 
   if (profile) {
     // Update existing profile
     profile = await prisma.profile.update({
-      where: { userId: session.user.id },
+      where: { id: profile.id },
       data: {
         displayName: name,
         bio: description || profile.bio,

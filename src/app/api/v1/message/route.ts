@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { checkPublicRateLimit, rateLimited, badRequest } from "@/lib/api-auth";
 import { logAction } from "@/lib/adapters";
+import { fireWebhook } from "@/lib/webhook";
 
 export async function POST(request: NextRequest) {
   if (!checkPublicRateLimit(request)) return rateLimited();
@@ -53,6 +54,17 @@ export async function POST(request: NextRequest) {
       isDraft,
     },
   });
+
+  // Fire webhook for the recipient's profile (if it exists)
+  if (profile) {
+    fireWebhook(recipient_id, "message", {
+      message_id: msg.id,
+      subject: msg.subject,
+      body: msg.body,
+      is_draft: isDraft,
+      sender_id: msg.senderId,
+    });
+  }
 
   await logAction({
     action: "message",
