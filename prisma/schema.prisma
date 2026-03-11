@@ -189,6 +189,7 @@ model Profile {
   webhookSecret        String?
   webhookEnabled       Boolean  @default(false)
   enabledWebhookEvents String[] @default([])
+  webhookSchema        Json?    // Per-event custom field definitions for webhook payloads
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

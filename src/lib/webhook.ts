@@ -23,6 +23,7 @@ export interface WebhookPayload {
   entity_name: string;
   timestamp: string;
   data: Record<string, unknown>;
+  schema?: Record<string, unknown>; // Custom field definitions for this event type
 }
 
 /**
@@ -56,6 +57,7 @@ async function deliverWebhook(
       webhookSecret: true,
       webhookEnabled: true,
       enabledWebhookEvents: true,
+      webhookSchema: true,
       displayName: true,
     },
   });
@@ -72,12 +74,17 @@ async function deliverWebhook(
     return;
   }
 
+  // Extract event-specific schema if defined
+  const schemaMap = profile.webhookSchema as Record<string, unknown> | null;
+  const eventSchema = schemaMap && typeof schemaMap === "object" ? (schemaMap[eventType] as Record<string, unknown> | undefined) : undefined;
+
   const payload: WebhookPayload = {
     event: eventType,
     entity_id: profileId,
     entity_name: profile.displayName,
     timestamp: new Date().toISOString(),
     data,
+    ...(eventSchema && { schema: eventSchema }),
   };
 
   const body = JSON.stringify(payload);

@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
 
   const start = Date.now();
   const body = await request.json();
-  const { business_id, items, pickup_time, notes } = body;
+  const { business_id, items, pickup_time, notes, custom_fields } = body;
 
   if (!business_id) return badRequest("business_id is required");
   if (!items || !Array.isArray(items) || items.length === 0)
@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
     items,
     pickup_time,
     notes,
+    ...(custom_fields && { custom_fields }),
   });
 
   await logAction({

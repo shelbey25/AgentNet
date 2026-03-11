@@ -35,6 +35,15 @@ export async function GET(
     if (s.subsection) infoIndex[s.section].push(s.subsection);
   }
 
+  // Build required_fields from webhookSchema per capability
+  const webhookSchema = profile.webhookSchema as Record<string, unknown> | null;
+  const requiredFields: Record<string, unknown> = {};
+  if (webhookSchema && typeof webhookSchema === "object") {
+    for (const [eventType, schema] of Object.entries(webhookSchema)) {
+      requiredFields[eventType] = schema;
+    }
+  }
+
   return NextResponse.json({
     id: profile.id,
     type: profile.type,
@@ -100,5 +109,6 @@ export async function GET(
         ? `/api/v1/request_service` : null,
       message: `/api/v1/message`,
     },
+    ...(Object.keys(requiredFields).length > 0 && { required_fields: requiredFields }),
   });
 }

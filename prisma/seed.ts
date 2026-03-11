@@ -1847,6 +1847,172 @@ async function main() {
   console.log(`\n  Webhooks enabled on ${webhookResult.count} profiles → ${WEBHOOK_URL}`);
 
   // =====================================================
+  // CUSTOM WEBHOOK SCHEMAS PER ENTITY
+  // =====================================================
+  // Entities can define per-event custom field requirements.
+  // The AI reads these from the profile's required_fields and collects them before executing actions.
+
+  // Gorgas Library — booking requires student_id, optionally student_major + group_size
+  const gorgasProfile = await prisma.profile.findFirst({ where: { userId: gorgas.id } });
+  if (gorgasProfile) {
+    await prisma.profile.update({
+      where: { id: gorgasProfile.id },
+      data: {
+        webhookSchema: {
+          booking: {
+            description: "Required fields for study room and consultation bookings",
+            fields: [
+              { name: "student_id", type: "string", required: true, description: "UA student CWID (9 digits)" },
+              { name: "student_major", type: "string", required: false, description: "Student's declared major" },
+              { name: "group_size", type: "number", required: false, description: "Number of people (for study rooms)" },
+            ],
+          },
+        },
+      },
+    });
+    console.log("  Schema: Gorgas Library — booking requires student_id");
+  }
+
+  // Crimson Cuts — booking requires phone_number, optionally preferred_barber
+  const crimsonCutsProfile = await prisma.profile.findFirst({ where: { userId: crimsonCuts.id } });
+  if (crimsonCutsProfile) {
+    await prisma.profile.update({
+      where: { id: crimsonCutsProfile.id },
+      data: {
+        webhookSchema: {
+          booking: {
+            description: "Required fields for barbershop appointments",
+            fields: [
+              { name: "phone_number", type: "string", required: true, description: "Contact phone number for appointment reminders" },
+              { name: "preferred_barber", type: "string", required: false, description: "Name of preferred barber (if any)" },
+            ],
+          },
+          quotes: {
+            description: "Required fields for service quotes",
+            fields: [
+              { name: "phone_number", type: "string", required: true, description: "Contact phone for quote follow-up" },
+              { name: "hair_type", type: "string", required: false, description: "Hair type/texture for accurate pricing" },
+            ],
+          },
+        },
+      },
+    });
+    console.log("  Schema: Crimson Cuts — booking requires phone_number");
+  }
+
+  // Lakeside Dining — ordering optionally wants meal_plan_id and dietary_restrictions
+  const lakesideProfile = await prisma.profile.findFirst({ where: { userId: lakeside.id } });
+  if (lakesideProfile) {
+    await prisma.profile.update({
+      where: { id: lakesideProfile.id },
+      data: {
+        webhookSchema: {
+          ordering: {
+            description: "Optional fields for dining orders",
+            fields: [
+              { name: "meal_plan_id", type: "string", required: false, description: "Meal plan or Dining Dollars account ID" },
+              { name: "dietary_restrictions", type: "string", required: false, description: "Allergies or dietary restrictions to flag" },
+            ],
+          },
+        },
+      },
+    });
+    console.log("  Schema: Lakeside Dining — ordering accepts meal_plan_id");
+  }
+
+  // Dr. Sarah Mitchell — booking (office hours) requires student_id and course_code
+  const mitchellProfile = await prisma.profile.findFirst({ where: { userId: profMitchell.id } });
+  if (mitchellProfile) {
+    await prisma.profile.update({
+      where: { id: mitchellProfile.id },
+      data: {
+        webhookSchema: {
+          booking: {
+            description: "Required fields for office hour appointments",
+            fields: [
+              { name: "student_id", type: "string", required: true, description: "UA student CWID" },
+              { name: "course_code", type: "string", required: true, description: "Course code (e.g., CS 403, CS 201)" },
+              { name: "topic", type: "string", required: false, description: "Brief description of what you need help with" },
+            ],
+          },
+        },
+      },
+    });
+    console.log("  Schema: Dr. Mitchell — booking requires student_id + course_code");
+  }
+
+  // Rec Center — booking requires student_id, optionally fitness_goal
+  const recProfile = await prisma.profile.findFirst({ where: { userId: recCenter.id } });
+  if (recProfile) {
+    await prisma.profile.update({
+      where: { id: recProfile.id },
+      data: {
+        webhookSchema: {
+          booking: {
+            description: "Required fields for facility and trainer bookings",
+            fields: [
+              { name: "student_id", type: "string", required: true, description: "UA student CWID for facility access" },
+              { name: "fitness_goal", type: "string", required: false, description: "Current fitness goal (for personal training)" },
+            ],
+          },
+        },
+      },
+    });
+    console.log("  Schema: Rec Center — booking requires student_id");
+  }
+
+  // Bama Waves Coffee — ordering requires phone_number for pickup notification
+  const bwProfile = await prisma.profile.findFirst({ where: { userId: bwCoffee.id } });
+  if (bwProfile) {
+    await prisma.profile.update({
+      where: { id: bwProfile.id },
+      data: {
+        webhookSchema: {
+          ordering: {
+            description: "Required fields for coffee orders",
+            fields: [
+              { name: "phone_number", type: "string", required: true, description: "Phone number for order-ready notification" },
+              { name: "reward_member_id", type: "string", required: false, description: "Loyalty rewards member ID (if enrolled)" },
+            ],
+          },
+        },
+      },
+    });
+    console.log("  Schema: Bama Waves Coffee — ordering requires phone_number");
+  }
+
+  // Chicken House — ordering requires phone for pickup, dietary info optional
+  const chickenProfile = await prisma.profile.findFirst({ where: { userId: chickenHouse.id } });
+  if (chickenProfile) {
+    await prisma.profile.update({
+      where: { id: chickenProfile.id },
+      data: {
+        webhookSchema: {
+          ordering: {
+            description: "Required fields for food orders",
+            fields: [
+              { name: "phone_number", type: "string", required: true, description: "Phone number for pickup notification" },
+              { name: "spice_level", type: "string", required: false, description: "Preferred spice level: mild, medium, hot, extra hot" },
+            ],
+          },
+          quotes: {
+            description: "Required fields for catering quotes",
+            fields: [
+              { name: "phone_number", type: "string", required: true, description: "Contact phone for catering follow-up" },
+              { name: "event_date", type: "string", required: true, description: "Date of the event (YYYY-MM-DD)" },
+              { name: "guest_count", type: "number", required: true, description: "Number of guests" },
+            ],
+          },
+        },
+      },
+    });
+    console.log("  Schema: Chicken House — ordering & quotes require phone_number");
+  }
+
+  console.log("  Custom webhook schemas applied to 7 entities");
+
+
+  // =====================================================
   // SUMMARY
   // =====================================================
 

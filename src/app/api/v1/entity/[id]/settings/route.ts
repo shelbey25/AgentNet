@@ -52,6 +52,7 @@ export async function GET(
       secret: profile.webhookSecret ? "***configured***" : null,
       enabledEvents: profile.enabledWebhookEvents,
       availableEvents: VALID_WEBHOOK_EVENTS,
+      schema: profile.webhookSchema || null,
     },
     capabilities: profile.capabilities.map((c) => ({
       type: c.type,
@@ -91,6 +92,7 @@ export async function PATCH(
     webhookSecret,
     webhookEnabled,
     enabledWebhookEvents,
+    webhookSchema,
     displayName,
     status,
   } = body;
@@ -129,6 +131,24 @@ export async function PATCH(
     }
   }
 
+  // Validate webhookSchema if provided — must be an object keyed by event type
+  if (webhookSchema !== undefined && webhookSchema !== null) {
+    if (typeof webhookSchema !== "object" || Array.isArray(webhookSchema)) {
+      return NextResponse.json(
+        { error: "webhookSchema must be an object keyed by event type (e.g., {\"booking\": {\"fields\": [...]}})" },
+        { status: 400 }
+      );
+    }
+    for (const eventKey of Object.keys(webhookSchema)) {
+      if (!VALID_WEBHOOK_EVENTS.includes(eventKey)) {
+        return NextResponse.json(
+          { error: `Invalid event type in webhookSchema: ${eventKey}`, validEvents: VALID_WEBHOOK_EVENTS },
+          { status: 400 }
+        );
+      }
+    }
+  }
+
   const updated = await prisma.profile.update({
     where: { id },
     data: {
@@ -138,6 +158,7 @@ export async function PATCH(
       }),
       ...(webhookEnabled !== undefined && { webhookEnabled }),
       ...(enabledWebhookEvents !== undefined && { enabledWebhookEvents }),
+      ...(webhookSchema !== undefined && { webhookSchema: webhookSchema }),
       ...(displayName !== undefined && { displayName }),
       ...(status !== undefined && { status }),
     },

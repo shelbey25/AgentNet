@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
 
   const start = Date.now();
   const body = await request.json();
-  const { provider_id, service, time_preference, details } = body;
+  const { provider_id, service, time_preference, details, custom_fields } = body;
 
   if (!provider_id) return badRequest("provider_id is required");
   if (!service) return badRequest("service is required");
@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
     service,
     time_preference,
     details: details || {},
+    ...(custom_fields && { custom_fields }),
   });
 
   await logAction({
