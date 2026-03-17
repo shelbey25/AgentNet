@@ -1812,6 +1812,1124 @@ async function main() {
   console.log("  Devon Brooks (Trainer) — " + devon.id);
 
   // =====================================================
+  // ACADEMIC ADVISING — UA-Specific
+  // =====================================================
+
+  console.log("\nCreating academic advising entities...");
+
+  // ─── 1. UA College of Engineering Advising Center (site) ───
+
+  const engAdvising = await prisma.user.create({
+    data: {
+      email: "eng-advising@ua.edu",
+      passwordHash: pw,
+      name: "UA Engineering Advising",
+      role: "business",
+      profiles: {
+        create: {
+          type: "site",
+          displayName: "UA College of Engineering Advising Center",
+          bio: "Central academic advising hub for all College of Engineering majors — CS, ME, EE, CE, ChE, and AEM. Offers degree audits, course planning, major/minor declaration, registration holds resolution, and graduation clearance. Walk-ins welcome during open advising hours or book an appointment online.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "advising",
+          address: "Houser Hall 127, Tuscaloosa, AL 35487",
+          hours: "Mon-Fri 8:00 AM-5:00 PM",
+          phone: "(205) 348-1644",
+          website: "https://eng.ua.edu/advising",
+          tags: ["advising", "engineering", "degree-planning", "registration", "course-planning", "graduation", "academic"],
+          services: {
+            create: [
+              { name: "Advising Appointment", description: "Full advising session — course planning, degree audit, or registration issues.", category: "Advising", duration: 30, isBookable: true },
+              { name: "Quick Question Drop-In", description: "Walk-in for brief questions (no appointment needed).", category: "Advising", duration: 10, isBookable: false },
+              { name: "Degree Audit Review", description: "Review your DegreeWorks audit and map remaining requirements.", category: "Advising", duration: 30, isBookable: true },
+              { name: "Major/Minor Declaration", description: "Help declaring, adding, or changing your major or minor.", category: "Advising", duration: 20, isBookable: true },
+              { name: "Pre-Registration Review", description: "Verify course selections before registration opens.", category: "Advising", duration: 20, isBookable: true },
+              { name: "Graduation Clearance Check", description: "Verify all requirements are met for graduation.", category: "Advising", duration: 30, isBookable: true },
+            ],
+          },
+          capabilities: {
+            create: [
+              { type: "booking" },
+              { type: "availability" },
+              { type: "messaging" },
+              { type: "service_requests" },
+            ],
+          },
+          infoSections: {
+            create: [
+              // ── Overview
+              {
+                section: "services",
+                title: "Advising Services Overview",
+                data: {
+                  overview: "The Engineering Advising Center supports all undergraduate engineering students with degree planning, course scheduling, registration assistance, and graduation clearance.",
+                  departments_served: ["Computer Science", "Mechanical Engineering", "Electrical & Computer Engineering", "Civil Engineering", "Chemical Engineering", "Aerospace Engineering & Mechanics"],
+                  tools: [
+                    { name: "DegreeWorks", description: "Online degree audit tool — check your progress in myBama" },
+                    { name: "Course Catalog", description: "Full UA course listings at catalog.ua.edu" },
+                    { name: "Schedule Builder", description: "Build and preview schedules before registration" },
+                  ],
+                },
+              },
+              // ── Registration process
+              {
+                section: "registration",
+                title: "Registration Guide",
+                data: {
+                  process: [
+                    { step: 1, action: "Check your registration time ticket in myBama", detail: "Under Student tab → Registration → Time Ticket" },
+                    { step: 2, action: "Run your DegreeWorks audit", detail: "Identify remaining required courses" },
+                    { step: 3, action: "Meet with your advisor (required for freshmen/sophomores)", detail: "Advisor removes your hold after reviewing your plan" },
+                    { step: 4, action: "Build your schedule in Schedule Builder", detail: "Check for time conflicts and seat availability" },
+                    { step: 5, action: "Register via myBama when your time ticket opens", detail: "Add CRNs or use schedule builder to push directly" },
+                    { step: 6, action: "Verify enrollment on your class schedule", detail: "Confirm all sections are correct, check waitlists" },
+                  ],
+                  important_deadlines: {
+                    fall_2026: {
+                      priority_registration: "Mar 23 - Apr 3, 2026",
+                      open_registration: "Apr 6 - Aug 21, 2026",
+                      add_drop: "Aug 19-25, 2026",
+                      last_day_to_withdraw: "Oct 16, 2026",
+                    },
+                    spring_2027: {
+                      priority_registration: "Oct 19 - Oct 30, 2026",
+                      open_registration: "Nov 2, 2026 - Jan 8, 2027",
+                      add_drop: "Jan 6-12, 2027",
+                    },
+                  },
+                  common_holds: [
+                    { hold: "Advising Hold", resolution: "Meet with your assigned advisor to get it cleared" },
+                    { hold: "Financial Hold", resolution: "Contact Student Account Services — 205-348-5350" },
+                    { hold: "Immunization Hold", resolution: "Submit records to Student Health Center" },
+                    { hold: "Orientation Hold", resolution: "Complete Bama Bound orientation" },
+                  ],
+                },
+              },
+              // ── CS degree requirements
+              {
+                section: "degrees",
+                title: "Degree Programs",
+                data: {
+                  note: "Detailed degree plans by major. Browse subsections for specific departments.",
+                  programs: ["Computer Science", "Mechanical Engineering", "Electrical & Computer Engineering", "Civil Engineering", "Chemical Engineering"],
+                },
+              },
+              {
+                section: "degrees",
+                subsection: "computer_science",
+                title: "BS Computer Science — Degree Requirements",
+                data: {
+                  degree: "Bachelor of Science in Computer Science",
+                  college: "College of Engineering",
+                  total_credits: 124,
+                  core_requirements: {
+                    math: [
+                      { code: "MATH 125", name: "Calculus I", credits: 4, prereqs: [] },
+                      { code: "MATH 126", name: "Calculus II", credits: 4, prereqs: ["MATH 125"] },
+                      { code: "MATH 227", name: "Calculus III", credits: 4, prereqs: ["MATH 126"] },
+                      { code: "MATH 301", name: "Discrete Mathematics", credits: 3, prereqs: ["MATH 125"] },
+                      { code: "MATH 355", name: "Linear Algebra", credits: 3, prereqs: ["MATH 126"] },
+                      { code: "ST 260", name: "Statistics", credits: 3, prereqs: ["MATH 126"] },
+                    ],
+                    science: [
+                      { code: "PH 101", name: "General Physics I", credits: 4, prereqs: ["MATH 125"] },
+                      { code: "PH 102", name: "General Physics II", credits: 4, prereqs: ["PH 101", "MATH 126"] },
+                    ],
+                    cs_core: [
+                      { code: "CS 100", name: "Computer Science Concepts", credits: 1, prereqs: [] },
+                      { code: "CS 101", name: "Intro to CS (Python)", credits: 3, prereqs: [] },
+                      { code: "CS 200", name: "Object-Oriented Programming (Java)", credits: 3, prereqs: ["CS 101"] },
+                      { code: "CS 201", name: "Data Structures & Algorithms", credits: 3, prereqs: ["CS 200", "MATH 125"] },
+                      { code: "CS 250", name: "Computer Organization", credits: 3, prereqs: ["CS 200"] },
+                      { code: "CS 260", name: "Foundations of Software Engineering", credits: 3, prereqs: ["CS 201"] },
+                      { code: "CS 300", name: "Operating Systems", credits: 3, prereqs: ["CS 250", "CS 201"] },
+                      { code: "CS 302", name: "Database Systems", credits: 3, prereqs: ["CS 201"] },
+                      { code: "CS 360", name: "Computer Networks", credits: 3, prereqs: ["CS 250"] },
+                      { code: "CS 403", name: "Intro to AI", credits: 3, prereqs: ["CS 201", "MATH 301", "ST 260"] },
+                      { code: "CS 470", name: "Compiler Design", credits: 3, prereqs: ["CS 250", "CS 201"] },
+                    ],
+                    cs_electives: {
+                      required_count: 4,
+                      note: "Choose 4 courses (12 credits) from CS 400-level electives",
+                      options: [
+                        { code: "CS 410", name: "Software Engineering", prereqs: ["CS 260"] },
+                        { code: "CS 415", name: "Computer Graphics", prereqs: ["CS 201", "MATH 227"] },
+                        { code: "CS 420", name: "Computer Security", prereqs: ["CS 300", "CS 360"] },
+                        { code: "CS 426", name: "Parallel Computing", prereqs: ["CS 300"] },
+                        { code: "CS 430", name: "Theory of Languages", prereqs: ["CS 201", "MATH 301"] },
+                        { code: "CS 457", name: "Machine Learning", prereqs: ["CS 403", "MATH 355", "ST 260"] },
+                        { code: "CS 460", name: "Computer Vision", prereqs: ["CS 403", "MATH 355"] },
+                        { code: "CS 467", name: "Deep Learning", prereqs: ["CS 457"] },
+                        { code: "CS 470", name: "Compiler Design", prereqs: ["CS 250", "CS 201"] },
+                        { code: "CS 495", name: "Capstone Project", prereqs: ["CS 260", "senior standing"] },
+                      ],
+                    },
+                  },
+                  recommended_sequence: [
+                    {
+                      semester: "Freshman Fall",
+                      courses: ["CS 100", "CS 101", "MATH 125", "EN 101", "General Elective"],
+                      credits: 15,
+                    },
+                    {
+                      semester: "Freshman Spring",
+                      courses: ["CS 200", "MATH 126", "PH 101", "EN 102", "General Elective"],
+                      credits: 16,
+                    },
+                    {
+                      semester: "Sophomore Fall",
+                      courses: ["CS 201", "CS 250", "MATH 227", "MATH 301", "Humanities Elective"],
+                      credits: 16,
+                    },
+                    {
+                      semester: "Sophomore Spring",
+                      courses: ["CS 260", "CS 302", "MATH 355", "PH 102", "ST 260"],
+                      credits: 16,
+                    },
+                    {
+                      semester: "Junior Fall",
+                      courses: ["CS 300", "CS 360", "CS 403", "CS Elective 1", "Social Science Elective"],
+                      credits: 15,
+                    },
+                    {
+                      semester: "Junior Spring",
+                      courses: ["CS 470", "CS Elective 2", "CS Elective 3", "Fine Arts Elective", "Free Elective"],
+                      credits: 15,
+                    },
+                    {
+                      semester: "Senior Fall",
+                      courses: ["CS Elective 4", "CS 495 (Capstone)", "Free Elective", "Free Elective", "Free Elective"],
+                      credits: 15,
+                    },
+                    {
+                      semester: "Senior Spring",
+                      courses: ["Free Elective", "Free Elective", "Free Elective", "Free Elective", "Free Elective"],
+                      credits: 15,
+                    },
+                  ],
+                  graduation_requirements: {
+                    min_gpa: 2.0,
+                    min_major_gpa: 2.0,
+                    max_d_credits_in_major: 6,
+                    residency: "30 of last 36 credits must be at UA",
+                    writing: "W-course requirement (2 W-designated courses)",
+                  },
+                },
+              },
+              {
+                section: "degrees",
+                subsection: "mechanical_engineering",
+                title: "BS Mechanical Engineering — Degree Requirements",
+                data: {
+                  degree: "Bachelor of Science in Mechanical Engineering",
+                  college: "College of Engineering",
+                  total_credits: 128,
+                  core_requirements: {
+                    math: [
+                      { code: "MATH 125", name: "Calculus I", credits: 4 },
+                      { code: "MATH 126", name: "Calculus II", credits: 4 },
+                      { code: "MATH 227", name: "Calculus III", credits: 4 },
+                      { code: "MATH 238", name: "Differential Equations", credits: 3 },
+                    ],
+                    science: [
+                      { code: "PH 101", name: "General Physics I", credits: 4 },
+                      { code: "PH 102", name: "General Physics II", credits: 4 },
+                      { code: "CH 101", name: "General Chemistry I", credits: 4 },
+                    ],
+                    engineering_core: [
+                      { code: "ME 200", name: "Statics", credits: 3, prereqs: ["PH 101", "MATH 126"] },
+                      { code: "ME 201", name: "Dynamics", credits: 3, prereqs: ["ME 200"] },
+                      { code: "ME 210", name: "Thermodynamics I", credits: 3, prereqs: ["PH 101", "MATH 126"] },
+                      { code: "ME 250", name: "Mechanics of Materials", credits: 3, prereqs: ["ME 200"] },
+                      { code: "ME 310", name: "Fluid Mechanics", credits: 3, prereqs: ["ME 201", "ME 210"] },
+                      { code: "ME 320", name: "Heat Transfer", credits: 3, prereqs: ["ME 310"] },
+                      { code: "ME 360", name: "Machine Design", credits: 3, prereqs: ["ME 250"] },
+                      { code: "ME 450", name: "Controls & Instrumentation", credits: 3, prereqs: ["ME 201", "MATH 238"] },
+                      { code: "ME 495", name: "Senior Design Capstone", credits: 3, prereqs: ["senior standing"] },
+                    ],
+                  },
+                  recommended_sequence: [
+                    { semester: "Freshman Fall", courses: ["MATH 125", "CH 101", "EN 101", "ENGR 111", "GEN ED"], credits: 16 },
+                    { semester: "Freshman Spring", courses: ["MATH 126", "PH 101", "EN 102", "CS 101", "GEN ED"], credits: 16 },
+                    { semester: "Sophomore Fall", courses: ["MATH 227", "PH 102", "ME 200", "ENGR 200", "GEN ED"], credits: 16 },
+                    { semester: "Sophomore Spring", courses: ["MATH 238", "ME 201", "ME 210", "ME 250", "GEN ED"], credits: 16 },
+                    { semester: "Junior Fall", courses: ["ME 310", "ME 360", "ME Elective", "Lab", "GEN ED"], credits: 16 },
+                    { semester: "Junior Spring", courses: ["ME 320", "ME 450", "ME Elective", "Lab", "GEN ED"], credits: 16 },
+                    { semester: "Senior Fall", courses: ["ME 495 (Capstone I)", "ME Elective", "ME Elective", "Free Elective"], credits: 16 },
+                    { semester: "Senior Spring", courses: ["ME 495 (Capstone II)", "ME Elective", "Free Elective", "Free Elective"], credits: 16 },
+                  ],
+                },
+              },
+              // ── Prerequisite dependency graph (CS)
+              {
+                section: "prerequisites",
+                title: "Prerequisite Chains",
+                data: {
+                  note: "Course prerequisite dependency graphs. Browse subsections for specific departments.",
+                  departments: ["computer_science", "mechanical_engineering"],
+                },
+              },
+              {
+                section: "prerequisites",
+                subsection: "computer_science",
+                title: "CS Prerequisite Dependency Graph",
+                data: {
+                  description: "Shows what you must complete before taking each CS course. Use this to plan your path.",
+                  chains: [
+                    { target: "CS 200", requires: ["CS 101"], note: "OOP builds on Python fundamentals" },
+                    { target: "CS 201", requires: ["CS 200", "MATH 125"], note: "Data structures — the gateway course" },
+                    { target: "CS 250", requires: ["CS 200"], note: "Computer org — can take alongside CS 201" },
+                    { target: "CS 260", requires: ["CS 201"], note: "Software engineering fundamentals" },
+                    { target: "CS 300", requires: ["CS 250", "CS 201"], note: "OS — heavy prerequisite load" },
+                    { target: "CS 302", requires: ["CS 201"], note: "Databases — popular elective path" },
+                    { target: "CS 360", requires: ["CS 250"], note: "Networks — pairs well with CS 300" },
+                    { target: "CS 403", requires: ["CS 201", "MATH 301", "ST 260"], note: "AI — needs math foundations" },
+                    { target: "CS 420", requires: ["CS 300", "CS 360"], note: "Security — needs OS and networks" },
+                    { target: "CS 457", requires: ["CS 403", "MATH 355", "ST 260"], note: "ML — heavy math prereqs" },
+                    { target: "CS 467", requires: ["CS 457"], note: "Deep learning — must complete ML first" },
+                    { target: "CS 495", requires: ["CS 260", "senior standing"], note: "Capstone — apply early as seats are limited" },
+                  ],
+                  critical_paths: [
+                    {
+                      name: "AI/ML Track",
+                      sequence: ["CS 101", "CS 200", "CS 201", "MATH 301 + ST 260 (parallel)", "CS 403", "MATH 355", "CS 457", "CS 467"],
+                      earliest_ml: "Junior Spring (if MATH 301 taken Sophomore Fall)",
+                    },
+                    {
+                      name: "Systems Track",
+                      sequence: ["CS 101", "CS 200", "CS 250", "CS 201", "CS 300 + CS 360 (parallel)", "CS 420"],
+                      earliest_security: "Junior Spring",
+                    },
+                    {
+                      name: "Software Engineering Track",
+                      sequence: ["CS 101", "CS 200", "CS 201", "CS 260", "CS 302", "CS 410", "CS 495"],
+                      earliest_capstone: "Senior Fall",
+                    },
+                  ],
+                },
+              },
+              // ── Policies
+              {
+                section: "policies",
+                title: "Academic Policies",
+                data: {
+                  policies: [
+                    { name: "Advising Hold", description: "Freshmen and sophomores MUST meet with an advisor before registering each semester. The hold is placed automatically and only your assigned advisor can clear it." },
+                    { name: "Repeat Policy", description: "You may repeat a course once. The higher grade replaces the lower in GPA calculation. Third attempts require dean approval." },
+                    { name: "Withdrawal", description: "You can withdraw (W grade) up to the published deadline (~week 10). After that, instructor approval is needed. W does not affect GPA." },
+                    { name: "Academic Probation", description: "GPA below 2.0 triggers probation. Two consecutive terms on probation may result in suspension." },
+                    { name: "Credit Overload", description: "More than 18 credits requires advisor approval. Engineering students need a 3.0+ cumulative GPA and advisor sign-off." },
+                    { name: "AP/Transfer Credits", description: "AP scores of 4+ are generally accepted. Transfer credits evaluated by the registrar. Some courses require departmental approval." },
+                    { name: "Minor Declaration", description: "Must be declared by the end of junior year. Requires 18 credits in the minor field, at least 6 at the 300+ level." },
+                  ],
+                },
+              },
+              // ── Hours
+              {
+                section: "hours",
+                title: "Advising Center Hours",
+                data: {
+                  hours: [
+                    { day: "Monday", open: "8:00 AM", close: "5:00 PM", notes: "Walk-ins 8-10 AM" },
+                    { day: "Tuesday", open: "8:00 AM", close: "5:00 PM", notes: "Walk-ins 8-10 AM" },
+                    { day: "Wednesday", open: "8:00 AM", close: "5:00 PM", notes: "Walk-ins 8-10 AM" },
+                    { day: "Thursday", open: "8:00 AM", close: "5:00 PM", notes: "Walk-ins 8-10 AM" },
+                    { day: "Friday", open: "8:00 AM", close: "4:00 PM", notes: "Appointments only" },
+                  ],
+                  peak_times: "Weeks before registration opens (March and October) — book appointments early!",
+                  virtual_option: "Zoom advising available by appointment — request via message.",
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  UA Engineering Advising Center — " + engAdvising.id);
+
+  // ─── 2. Dr. Karen Wells — Senior CS Academic Advisor (person) ───
+
+  const advisorKaren = await prisma.user.create({
+    data: {
+      email: "kwells@ua.edu",
+      passwordHash: pw,
+      name: "Dr. Karen Wells",
+      role: "person",
+      profiles: {
+        create: {
+          type: "person",
+          displayName: "Dr. Karen Wells",
+          bio: "Senior Academic Advisor for Computer Science in the College of Engineering. 12 years of advising experience at UA. Specializes in degree planning, course sequencing, pre-grad prep, and helping undecided students explore CS pathways. Advisor for 200+ CS majors.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "advising",
+          campusRole: "advisor",
+          department: "Computer Science",
+          title: "Senior Academic Advisor",
+          officeLocation: "Houser Hall 129",
+          officeHours: "Mon-Thu 9:00 AM-4:00 PM, Fri 9:00 AM-2:00 PM",
+          tags: ["advising", "computer-science", "degree-planning", "registration", "course-planning", "prerequisites", "graduation", "cs-advisor"],
+          skills: {
+            create: [
+              { name: "Degree Audit Analysis", category: "Advising" },
+              { name: "Course Sequencing", category: "Advising" },
+              { name: "Prerequisites Planning", category: "Advising" },
+              { name: "Graduate School Prep", category: "Career" },
+              { name: "Schedule Optimization", category: "Advising" },
+            ],
+          },
+          services: {
+            create: [
+              { name: "Full Advising Session", description: "Comprehensive degree review, course planning for next 2+ semesters, and academic goal setting.", category: "Advising", duration: 30, isBookable: true },
+              { name: "Pre-Registration Check", description: "Quick review of your planned schedule before registration opens. Catch conflicts and missing prereqs.", category: "Advising", duration: 15, isBookable: true },
+              { name: "Degree Audit Walkthrough", description: "Detailed review of your DegreeWorks audit — what you've completed, what's left, and the fastest path to graduation.", category: "Advising", duration: 30, isBookable: true },
+              { name: "Schedule Conflict Resolution", description: "Help resolving time conflicts, closed sections, or waitlist strategies.", category: "Advising", duration: 15, isBookable: true },
+              { name: "Major Exploration", description: "Considering CS or switching into CS? Let's review requirements, timeline, and credit applicability.", category: "Advising", duration: 30, isBookable: true },
+              { name: "Graduate School Advising", description: "Planning for MS/PhD in CS — course selection, research experience, GPA targets, and application timeline.", category: "Career", duration: 30, isBookable: true },
+            ],
+          },
+          capabilities: {
+            create: [
+              { type: "booking" },
+              { type: "availability" },
+              { type: "messaging" },
+              { type: "service_requests" },
+            ],
+          },
+          infoSections: {
+            create: [
+              {
+                section: "office_hours",
+                title: "Office Hours",
+                data: {
+                  schedule: [
+                    { day: "Monday", start: "9:00", end: "16:00", location: "Houser Hall 129" },
+                    { day: "Tuesday", start: "9:00", end: "16:00", location: "Houser Hall 129" },
+                    { day: "Wednesday", start: "9:00", end: "16:00", location: "Houser Hall 129" },
+                    { day: "Thursday", start: "9:00", end: "16:00", location: "Houser Hall 129" },
+                    { day: "Friday", start: "9:00", end: "14:00", location: "Houser Hall 129" },
+                  ],
+                  booking_notes: "Walk-ins accepted but appointments strongly recommended during peak registration weeks.",
+                  virtual: "Zoom appointments available upon request.",
+                },
+              },
+              {
+                section: "faq",
+                title: "Common Advising Questions",
+                data: {
+                  questions: [
+                    {
+                      q: "When should I come see an advisor?",
+                      a: "Before registration each semester. Also come if you're considering changing your major, struggling in courses, or planning for grad school. Freshmen/sophomores: your advising hold MUST be cleared before you can register.",
+                    },
+                    {
+                      q: "How do I check my degree progress?",
+                      a: "Log into myBama → Student tab → DegreeWorks. Run an audit for your current major. If you're considering a different major, use the 'What If' feature.",
+                    },
+                    {
+                      q: "I failed a prerequisite. What now?",
+                      a: "You need to retake it before progressing. This may delay downstream courses. Come see me ASAP so we can restructure your plan and minimize the impact.",
+                    },
+                    {
+                      q: "Can I take CS 300 and CS 360 in the same semester?",
+                      a: "Yes, they have no dependency on each other (CS 300 needs CS 250+201, CS 360 needs CS 250). This is actually the recommended Junior Fall pairing.",
+                    },
+                    {
+                      q: "How do I get into a full class?",
+                      a: "Add yourself to the waitlist. Check for newly opened sections. Come to the first day — instructors sometimes give permission numbers. I can also help you find alternative sections or equivalent courses.",
+                    },
+                    {
+                      q: "What CS electives should I take for an AI career?",
+                      a: "CS 403 (AI), CS 457 (ML), CS 467 (Deep Learning), CS 460 (Computer Vision). You'll need MATH 355 and ST 260 as prerequisites for the ML track.",
+                    },
+                    {
+                      q: "Can I double major or add a minor?",
+                      a: "Absolutely. Popular CS combos: CS+Math, CS+Data Science, CS with a Business minor. Come in and we'll map out how your remaining credits overlap.",
+                    },
+                  ],
+                },
+              },
+              {
+                section: "services",
+                title: "Advising Specialties",
+                data: {
+                  services: [
+                    { name: "Freshman Year Planning", description: "Get on the right track from day one — proper math placement and CS 100/101 sequencing" },
+                    { name: "Transfer Student Integration", description: "Evaluate transfer credits, map to UA requirements, build a completion plan" },
+                    { name: "Pre-Med + CS Dual Track", description: "Guide students pursuing both pre-med and CS — it's doable with careful planning" },
+                    { name: "Internship Credit (CS 491)", description: "Help setting up and registering for internship-for-credit" },
+                    { name: "Overload Approval", description: "Need 18+ credits? I'll review your GPA and workload and submit the approval" },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Dr. Karen Wells (CS Advisor) — " + advisorKaren.id);
+
+  // ─── 3. UA Course Catalog (site) ───
+
+  const courseCatalog = await prisma.user.create({
+    data: {
+      email: "catalog@registrar.ua.edu",
+      passwordHash: pw,
+      name: "UA Course Catalog",
+      role: "business",
+      profiles: {
+        create: {
+          type: "site",
+          displayName: "UA Course Catalog & Schedule",
+          bio: "Official University of Alabama course catalog and schedule. Search courses by department, browse current semester offerings, check prerequisites, and view seat availability. Updated daily during registration periods.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "academic",
+          website: "https://catalog.ua.edu",
+          tags: ["courses", "catalog", "schedule", "registration", "prerequisites", "academic", "classes", "CRN", "syllabus"],
+          capabilities: {
+            create: [
+              { type: "messaging" },
+            ],
+          },
+          infoSections: {
+            create: [
+              // ─ Root: departments index
+              {
+                section: "courses",
+                title: "Course Catalog",
+                data: {
+                  note: "Browse courses by department. Each subsection contains current course offerings.",
+                  departments: ["computer_science", "mathematics", "mechanical_engineering", "finance", "english"],
+                  semester: "Fall 2026",
+                },
+              },
+              // ─ CS Courses
+              {
+                section: "courses",
+                subsection: "computer_science",
+                title: "Computer Science Courses — Fall 2026",
+                data: {
+                  department: "Computer Science",
+                  prefix: "CS",
+                  courses: [
+                    { code: "CS 100", name: "Freshman Seminar in CS", credits: 1, prereqs: [], seats: 60, enrolled: 42, schedule: "F 1:00-1:50 PM", location: "Shelby 1103", instructor: "Staff", description: "Introduction to the CS department, major requirements, and career paths." },
+                    { code: "CS 101", name: "Intro to Computer Science", credits: 3, prereqs: [], seats: 120, enrolled: 108, schedule: "MWF 9:00-9:50 AM", location: "Shelby 1103", instructor: "Dr. Adams", description: "Problem solving with Python. Variables, loops, functions, lists, basic OOP." },
+                    { code: "CS 101", name: "Intro to Computer Science", credits: 3, prereqs: [], seats: 120, enrolled: 95, schedule: "MWF 11:00-11:50 AM", location: "Shelby 1103", instructor: "Dr. Park", description: "Problem solving with Python. Variables, loops, functions, lists, basic OOP.", section: "002" },
+                    { code: "CS 200", name: "Object-Oriented Programming", credits: 3, prereqs: ["CS 101"], seats: 90, enrolled: 82, schedule: "TR 9:30-10:45 AM", location: "Shelby 2107", instructor: "Dr. Chen", description: "OOP concepts in Java: classes, inheritance, polymorphism, interfaces." },
+                    { code: "CS 201", name: "Data Structures & Algorithms", credits: 3, prereqs: ["CS 200", "MATH 125"], seats: 90, enrolled: 87, schedule: "TR 2:00-3:15 PM", location: "Shelby 1103", instructor: "Dr. Mitchell", description: "Arrays, linked lists, trees, graphs, sorting, searching, complexity analysis." },
+                    { code: "CS 250", name: "Computer Organization", credits: 3, prereqs: ["CS 200"], seats: 60, enrolled: 54, schedule: "MWF 10:00-10:50 AM", location: "Shelby 2218", instructor: "Dr. Foster", description: "Digital logic, assembly language, CPU architecture, memory hierarchy." },
+                    { code: "CS 260", name: "Software Engineering", credits: 3, prereqs: ["CS 201"], seats: 60, enrolled: 48, schedule: "TR 11:00 AM-12:15 PM", location: "Shelby 2107", instructor: "Dr. Lee", description: "Software development lifecycle, Agile, testing, version control, team projects." },
+                    { code: "CS 300", name: "Operating Systems", credits: 3, prereqs: ["CS 250", "CS 201"], seats: 45, enrolled: 39, schedule: "MWF 1:00-1:50 PM", location: "Shelby 2218", instructor: "Dr. Foster", description: "Processes, threads, scheduling, memory management, file systems." },
+                    { code: "CS 302", name: "Database Systems", credits: 3, prereqs: ["CS 201"], seats: 45, enrolled: 41, schedule: "TR 3:30-4:45 PM", location: "Shelby 2107", instructor: "Dr. Kim", description: "Relational model, SQL, normalization, transactions, indexing." },
+                    { code: "CS 360", name: "Computer Networks", credits: 3, prereqs: ["CS 250"], seats: 45, enrolled: 37, schedule: "MWF 2:00-2:50 PM", location: "Shelby 2218", instructor: "Dr. Patel", description: "TCP/IP, routing, HTTP, sockets, network security fundamentals." },
+                    { code: "CS 403", name: "Intro to Artificial Intelligence", credits: 3, prereqs: ["CS 201", "MATH 301", "ST 260"], seats: 40, enrolled: 38, schedule: "MWF 10:00-10:50 AM", location: "Shelby 1103", instructor: "Dr. Mitchell", description: "Search, logic, probability, machine learning basics, neural networks intro." },
+                    { code: "CS 410", name: "Advanced Software Engineering", credits: 3, prereqs: ["CS 260"], seats: 35, enrolled: 28, schedule: "TR 2:00-3:15 PM", location: "Shelby 2218", instructor: "Dr. Lee", description: "Design patterns, architecture, CI/CD, cloud deployment, advanced testing." },
+                    { code: "CS 420", name: "Computer Security", credits: 3, prereqs: ["CS 300", "CS 360"], seats: 35, enrolled: 32, schedule: "TR 11:00 AM-12:15 PM", location: "Shelby 2218", instructor: "Dr. Reyes", description: "Cryptography, authentication, network security, vulnerability analysis." },
+                    { code: "CS 457", name: "Machine Learning", credits: 3, prereqs: ["CS 403", "MATH 355", "ST 260"], seats: 35, enrolled: 34, schedule: "TR 3:30-4:45 PM", location: "Shelby 2218", instructor: "Dr. Mitchell", description: "Supervised/unsupervised learning, regression, classification, neural networks, evaluation." },
+                    { code: "CS 467", name: "Deep Learning", credits: 3, prereqs: ["CS 457"], seats: 30, enrolled: 25, schedule: "MW 3:00-4:15 PM", location: "Shelby 2218", instructor: "Dr. Mitchell", description: "CNNs, RNNs, transformers, GANs, reinforcement learning. PyTorch-based." },
+                    { code: "CS 495", name: "Capstone Project", credits: 3, prereqs: ["CS 260", "senior standing"], seats: 30, enrolled: 26, schedule: "F 2:00-4:30 PM", location: "Shelby 2107", instructor: "Dr. Lee", description: "Industry-sponsored team project. Full SDLC from requirements to deployment." },
+                  ],
+                },
+              },
+              // ─ Math courses
+              {
+                section: "courses",
+                subsection: "mathematics",
+                title: "Mathematics Courses — Fall 2026",
+                data: {
+                  department: "Mathematics",
+                  prefix: "MATH / ST",
+                  courses: [
+                    { code: "MATH 125", name: "Calculus I", credits: 4, prereqs: [], seats: 200, enrolled: 178, schedule: "MTWR 8:00-8:50 AM", location: "Gordon Palmer 151", instructor: "Dr. Huang" },
+                    { code: "MATH 125", name: "Calculus I", credits: 4, prereqs: [], seats: 200, enrolled: 165, schedule: "MTWR 10:00-10:50 AM", location: "Gordon Palmer 151", instructor: "Dr. Voss", section: "002" },
+                    { code: "MATH 126", name: "Calculus II", credits: 4, prereqs: ["MATH 125"], seats: 150, enrolled: 132, schedule: "MTWR 9:00-9:50 AM", location: "Gordon Palmer 151", instructor: "Dr. Huang" },
+                    { code: "MATH 227", name: "Calculus III", credits: 4, prereqs: ["MATH 126"], seats: 90, enrolled: 74, schedule: "MTWR 11:00-11:50 AM", location: "Gordon Palmer 234", instructor: "Dr. Pham" },
+                    { code: "MATH 237", name: "Linear Algebra (Applied)", credits: 3, prereqs: ["MATH 126"], seats: 60, enrolled: 45, schedule: "MWF 1:00-1:50 PM", location: "Gordon Palmer 234", instructor: "Dr. Pham" },
+                    { code: "MATH 301", name: "Discrete Mathematics", credits: 3, prereqs: ["MATH 125"], seats: 60, enrolled: 53, schedule: "MWF 11:00-11:50 AM", location: "Gordon Palmer 307", instructor: "Dr. Li" },
+                    { code: "MATH 355", name: "Linear Algebra", credits: 3, prereqs: ["MATH 126"], seats: 45, enrolled: 38, schedule: "TR 9:30-10:45 AM", location: "Gordon Palmer 307", instructor: "Dr. Li" },
+                    { code: "ST 260", name: "Statistical Methods", credits: 3, prereqs: ["MATH 126"], seats: 120, enrolled: 105, schedule: "TR 11:00 AM-12:15 PM", location: "Ten Hoor 125", instructor: "Dr. Johnson" },
+                  ],
+                },
+              },
+              // ─ Finance courses
+              {
+                section: "courses",
+                subsection: "finance",
+                title: "Finance Courses — Fall 2026",
+                data: {
+                  department: "Finance",
+                  prefix: "FI",
+                  courses: [
+                    { code: "FI 302", name: "Corporate Finance", credits: 3, prereqs: ["EC 110", "AC 210"], seats: 80, enrolled: 72, schedule: "MWF 11:00-11:50 AM", location: "Bidgood 130", instructor: "Dr. Rivera" },
+                    { code: "FI 410", name: "Investment Analysis", credits: 3, prereqs: ["FI 302"], seats: 45, enrolled: 40, schedule: "TR 3:30-4:45 PM", location: "Bidgood 250", instructor: "Dr. Rivera" },
+                    { code: "FI 435", name: "Financial Modeling", credits: 3, prereqs: ["FI 302", "ST 260"], seats: 35, enrolled: 30, schedule: "TR 12:30-1:45 PM", location: "Bidgood 250", instructor: "Dr. Sharma" },
+                  ],
+                },
+              },
+              // ─ Schedule tips
+              {
+                section: "schedule_tips",
+                title: "Course Scheduling Tips",
+                data: {
+                  tips: [
+                    { tip: "Register early", detail: "CS 400-level courses fill up fast. Set an alarm for your time ticket." },
+                    { tip: "Check RateMyProfessor", detail: "Multiple sections of CS 101 and MATH 125 exist — instructor matters." },
+                    { tip: "Use Schedule Builder", detail: "In myBama → Student → Schedule Builder. Add CRNs and visualize conflicts." },
+                    { tip: "Watch for labs", detail: "Some ME and CS courses have separate lab sections that must be registered independently." },
+                    { tip: "Balance your load", detail: "Don't take CS 300, CS 360, and CS 403 all in the same semester unless you're prepared for 40+ hours/week of coursework." },
+                    { tip: "Check prerequisites NOW", detail: "If you're missing a prereq, you'll get an error at registration. Run DegreeWorks first." },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  UA Course Catalog — " + courseCatalog.id);
+
+  // ─── 4. UA Graduate School (site) ───
+
+  const gradSchool = await prisma.user.create({
+    data: {
+      email: "gradschool@ua.edu",
+      passwordHash: pw,
+      name: "UA Graduate School",
+      role: "business",
+      profiles: {
+        create: {
+          type: "site",
+          displayName: "UA Graduate School",
+          bio: "The University of Alabama Graduate School oversees all master's and doctoral programs. We help with application guidance, admission requirements, funding opportunities, and preparing for graduate study. Supporting the transition from undergrad to graduate-level academics.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "academic",
+          address: "Rose Administration Building, Room 200, Tuscaloosa, AL 35487",
+          hours: "Mon-Fri 8:00 AM-5:00 PM",
+          phone: "(205) 348-5921",
+          website: "https://graduate.ua.edu",
+          tags: ["graduate", "masters", "phd", "grad-school", "application", "gre", "thesis", "research", "academic"],
+          services: {
+            create: [
+              { name: "Application Review", description: "Review of your graduate application materials before submission.", category: "Application", duration: 30, isBookable: true },
+              { name: "Program Exploration", description: "Learn about available graduate programs and their requirements.", category: "Advising", duration: 30, isBookable: true },
+              { name: "Funding Consultation", description: "Explore assistantships, fellowships, and financial aid for graduate students.", category: "Financial", duration: 20, isBookable: true },
+            ],
+          },
+          capabilities: {
+            create: [
+              { type: "booking" },
+              { type: "availability" },
+              { type: "messaging" },
+              { type: "service_requests" },
+            ],
+          },
+          infoSections: {
+            create: [
+              // ─ Programs overview
+              {
+                section: "programs",
+                title: "Graduate Programs",
+                data: {
+                  note: "Browse subsections for specific program details.",
+                  colleges: [
+                    { name: "College of Engineering", programs: ["MS Computer Science", "MS Mechanical Engineering", "MS Electrical Engineering", "PhD Computer Science", "PhD Mechanical Engineering"] },
+                    { name: "Culverhouse College of Business", programs: ["MBA", "MS Finance", "MS Marketing", "PhD Management"] },
+                    { name: "College of Arts & Sciences", programs: ["MA English", "MS Mathematics", "MS Chemistry", "PhD Biology", "PhD Physics"] },
+                  ],
+                },
+              },
+              {
+                section: "programs",
+                subsection: "cs_masters",
+                title: "MS in Computer Science",
+                data: {
+                  program: "Master of Science in Computer Science",
+                  department: "Computer Science",
+                  college: "College of Engineering",
+                  credits_required: 30,
+                  options: ["Thesis (24 courses + 6 thesis)", "Non-thesis (30 courses + comprehensive exam)"],
+                  admission_requirements: {
+                    gpa: "3.0 minimum (3.3+ competitive)",
+                    gre: "Optional (strong GPA/experience can waive)",
+                    prerequisites: ["Data Structures", "Algorithms", "Operating Systems", "Discrete Math", "Linear Algebra"],
+                    materials: ["Transcripts", "3 recommendation letters", "Statement of purpose", "Resume/CV"],
+                    deadline: { fall: "February 1", spring: "September 15" },
+                  },
+                  funding: {
+                    graduate_teaching_assistantship: { stipend: "$18,000-22,000/year", tuition_waiver: true, hours: "20 hrs/week teaching" },
+                    graduate_research_assistantship: { stipend: "$20,000-25,000/year", tuition_waiver: true, hours: "20 hrs/week research" },
+                    fellowships: "McNair, Graduate Council Fellowship, GAANN — merit-based, cover full tuition + stipend",
+                  },
+                  sample_courses: [
+                    "CS 500 — Advanced Algorithms",
+                    "CS 525 — Advanced AI",
+                    "CS 557 — Advanced Machine Learning",
+                    "CS 560 — Advanced Computer Vision",
+                    "CS 575 — Distributed Systems",
+                    "CS 591 — Graduate Seminar",
+                    "CS 599 — Thesis Research",
+                  ],
+                  typical_timeline: {
+                    thesis: "2 years (find advisor by end of Year 1, defend thesis by end of Year 2)",
+                    non_thesis: "1.5-2 years (comprehensive exam at end)",
+                  },
+                },
+              },
+              {
+                section: "programs",
+                subsection: "cs_phd",
+                title: "PhD in Computer Science",
+                data: {
+                  program: "Doctor of Philosophy in Computer Science",
+                  department: "Computer Science",
+                  college: "College of Engineering",
+                  credits_required: 72,
+                  admission_requirements: {
+                    gpa: "3.3 minimum (3.5+ competitive)",
+                    gre: "Recommended for PhD applicants",
+                    prerequisites: ["MS in CS or equivalent coursework"],
+                    materials: ["Transcripts", "3 recommendation letters", "Statement of purpose", "Research statement", "Resume/CV", "Writing sample (optional)"],
+                    deadline: { fall: "January 15", spring: "Not typically admitted" },
+                  },
+                  milestones: [
+                    { milestone: "Coursework", timeline: "Years 1-2", detail: "Complete required courses and electives" },
+                    { milestone: "Qualifying Exam", timeline: "End of Year 2", detail: "Written and oral components" },
+                    { milestone: "Dissertation Proposal", timeline: "Year 3", detail: "Define research problem and methodology" },
+                    { milestone: "Dissertation Research", timeline: "Years 3-5", detail: "Conduct original research" },
+                    { milestone: "Defense", timeline: "Year 4-5", detail: "Present and defend dissertation" },
+                  ],
+                  funding: "All accepted PhD students receive full funding (GRA/GTA + tuition waiver) for up to 5 years.",
+                  research_areas: ["AI & Machine Learning", "Computer Vision", "NLP", "Cybersecurity", "Systems & Networks", "Human-Computer Interaction", "Software Engineering"],
+                },
+              },
+              // ─ Application guidance
+              {
+                section: "application_guide",
+                title: "Application Guide",
+                data: {
+                  steps: [
+                    { step: 1, action: "Research programs", detail: "Browse graduate.ua.edu for programs. Reach out to faculty whose research interests align with yours." },
+                    { step: 2, action: "Check prerequisites", detail: "Ensure you meet or will meet all prerequisite requirements before enrollment." },
+                    { step: 3, action: "Prepare materials", detail: "Transcripts, recommendation letters (ask 2+ months early), statement of purpose, GRE (if needed)." },
+                    { step: 4, action: "Apply online", detail: "Submit via the UA Graduate School application portal. $65 application fee." },
+                    { step: 5, action: "Track your application", detail: "Log in to check status. Contact the department if you haven't heard back within 6-8 weeks." },
+                    { step: 6, action: "Accept and enroll", detail: "Accept your offer, submit enrollment deposit, and register for orientation." },
+                  ],
+                  gpa_benchmarks: {
+                    competitive: "3.5+ (significantly increases funding chances)",
+                    acceptable: "3.0-3.49 (meet minimum, strengthen other areas)",
+                    below_minimum: "Below 3.0 — consider post-bacc coursework or a conditional admission path",
+                  },
+                  timeline: {
+                    "12_months_before": "Begin researching programs and connecting with faculty",
+                    "9_months_before": "Take GRE if required, ask for recommendation letters",
+                    "6_months_before": "Draft statement of purpose, request transcripts",
+                    "3_months_before": "Submit applications (most fall deadlines are Jan-Feb)",
+                    "1_month_before": "Follow up on applications, compare offers",
+                    "enrollment": "Accept offer, attend orientation, register for first semester",
+                  },
+                },
+              },
+              // ─ Funding
+              {
+                section: "funding",
+                title: "Graduate Funding & Assistantships",
+                data: {
+                  types: [
+                    { type: "Graduate Teaching Assistantship (GTA)", description: "Teach or assist with undergraduate courses. Includes tuition waiver + stipend.", typical_stipend: "$16,000-22,000/year" },
+                    { type: "Graduate Research Assistantship (GRA)", description: "Work on faculty research projects. Includes tuition waiver + stipend.", typical_stipend: "$18,000-25,000/year" },
+                    { type: "Fellowship", description: "Merit-based awards. No teaching/research obligation. Full tuition + stipend.", examples: ["Graduate Council Fellowship", "McNair Fellowship", "GAANN Fellowship"] },
+                    { type: "Out-of-State Tuition Waiver", description: "Many GA/GTA positions include out-of-state tuition waiver, making costs equivalent to in-state." },
+                  ],
+                  how_to_apply: "Most assistantships are awarded by individual departments. Contact the department graduate coordinator directly. Fellowships are typically nominated by faculty.",
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  UA Graduate School — " + gradSchool.id);
+
+  // ─── 5. UA Career Center (site) — Career Path Mapping ───
+
+  const careerCenter = await prisma.user.create({
+    data: {
+      email: "career-center@ua.edu",
+      passwordHash: pw,
+      name: "UA Career Center",
+      role: "business",
+      profiles: {
+        create: {
+          type: "site",
+          displayName: "UA Career Center",
+          bio: "The University of Alabama Career Center helps students connect academic decisions to career outcomes. Explore career paths by major, identify skill gaps, find internships, and prepare for the job market. Resume reviews, mock interviews, career fairs, and employer connections — all free for UA students.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "career",
+          address: "Student Services Center, Suite 200, Tuscaloosa, AL 35487",
+          hours: "Mon-Thu 8:00 AM-5:00 PM, Fri 8:00 AM-4:00 PM",
+          phone: "(205) 348-5848",
+          website: "https://career.sa.ua.edu",
+          tags: ["career", "jobs", "internship", "resume", "interview", "career-fair", "skill-gap", "career-path", "salary", "employer"],
+          services: {
+            create: [
+              { name: "Career Exploration Session", description: "Explore career paths related to your major, interests, and skills.", category: "Career", duration: 30, isBookable: true },
+              { name: "Resume Review", description: "Professional feedback on your resume — formatting, content, keywords.", category: "Career", duration: 30, isBookable: true },
+              { name: "Mock Interview", description: "Practice with behavioral and technical interview questions. Get recorded feedback.", category: "Career", duration: 45, isBookable: true },
+              { name: "Internship Search Help", description: "Strategies for finding and landing internships in your field.", category: "Career", duration: 30, isBookable: true },
+              { name: "LinkedIn Profile Review", description: "Optimize your LinkedIn presence for recruiters.", category: "Career", duration: 20, isBookable: true },
+            ],
+          },
+          capabilities: {
+            create: [
+              { type: "booking" },
+              { type: "availability" },
+              { type: "messaging" },
+              { type: "service_requests" },
+            ],
+          },
+          infoSections: {
+            create: [
+              // ─ Career paths by major
+              {
+                section: "career_paths",
+                title: "Career Paths by Major",
+                data: {
+                  note: "Browse subsections for specific major pathways.",
+                  majors: ["computer_science", "mechanical_engineering", "finance"],
+                },
+              },
+              {
+                section: "career_paths",
+                subsection: "computer_science",
+                title: "Career Paths — Computer Science",
+                data: {
+                  major: "Computer Science",
+                  paths: [
+                    {
+                      career: "Software Engineer",
+                      description: "Design, build, and maintain software systems",
+                      typical_salary: "$85,000-$150,000 (entry-mid)",
+                      key_courses: ["CS 201", "CS 260", "CS 410", "CS 495"],
+                      skills_needed: ["Data structures", "System design", "Version control", "Testing", "1+ programming language"],
+                      employers_hiring_ua: ["Amazon", "Google", "Microsoft", "Lockheed Martin", "BBVA", "Regions Financial"],
+                    },
+                    {
+                      career: "Data Scientist / ML Engineer",
+                      description: "Build models from data to drive business decisions",
+                      typical_salary: "$95,000-$160,000",
+                      key_courses: ["CS 403", "CS 457", "CS 467", "ST 260", "MATH 355"],
+                      skills_needed: ["Python", "Statistics", "Machine learning", "SQL", "Data visualization"],
+                      employers_hiring_ua: ["Google", "Meta", "Amazon", "Protective Life", "USAA"],
+                    },
+                    {
+                      career: "Cybersecurity Analyst",
+                      description: "Protect systems and data from security threats",
+                      typical_salary: "$75,000-$130,000",
+                      key_courses: ["CS 300", "CS 360", "CS 420"],
+                      skills_needed: ["Network security", "Cryptography", "Penetration testing", "Risk assessment"],
+                      employers_hiring_ua: ["Northrop Grumman", "FBI", "NSA", "Booz Allen Hamilton", "SAIC"],
+                    },
+                    {
+                      career: "Product Manager",
+                      description: "Strategic role bridging technical and business teams",
+                      typical_salary: "$90,000-$155,000",
+                      key_courses: ["CS 260", "CS 410", "MKT 300", "MGT 300"],
+                      skills_needed: ["Technical literacy", "Communication", "Analytics", "User research"],
+                      note: "Consider a business minor — very valued for PM roles",
+                    },
+                    {
+                      career: "Graduate School / Research",
+                      description: "MS or PhD for research careers, professorships, or R&D lab positions",
+                      key_courses: ["CS 403", "CS 457", "CS 467", "CS 495 (research-focused capstone)"],
+                      skills_needed: ["Research methodology", "Academic writing", "Deep expertise in a subfield"],
+                      note: "Start undergraduate research by sophomore/junior year. Talk to Dr. Mitchell or Dr. Wells.",
+                    },
+                  ],
+                  skill_gap_tips: [
+                    { gap: "No internship experience", fix: "Apply to UA-sponsored internship programs. Career Center has an internship database. Start applying Fall of junior year." },
+                    { gap: "Weak in algorithms", fix: "Practice on LeetCode/HackerRank. Take CS 201 seriously — it's the #1 interview predictor." },
+                    { gap: "No portfolio/projects", fix: "Build 2-3 personal projects. Contribute to open source. CS 495 capstone counts." },
+                    { gap: "Missing soft skills", fix: "Join ACM/IEEE student chapter. Present at undergraduate research conferences. Take a public speaking elective." },
+                  ],
+                },
+              },
+              {
+                section: "career_paths",
+                subsection: "mechanical_engineering",
+                title: "Career Paths — Mechanical Engineering",
+                data: {
+                  major: "Mechanical Engineering",
+                  paths: [
+                    {
+                      career: "Mechanical Design Engineer",
+                      description: "Design mechanical systems and components using CAD and simulation",
+                      typical_salary: "$70,000-$110,000",
+                      key_courses: ["ME 360", "ME 250", "ME 495"],
+                      skills_needed: ["SolidWorks/CATIA", "FEA", "GD&T", "Material science"],
+                      employers_hiring_ua: ["Mercedes-Benz (Tuscaloosa)", "Nucor Steel", "Honda", "Boeing"],
+                    },
+                    {
+                      career: "HVAC / Energy Engineer",
+                      description: "Design heating, cooling, and energy systems for buildings and industry",
+                      typical_salary: "$65,000-$105,000",
+                      key_courses: ["ME 210", "ME 320", "ME 310"],
+                      skills_needed: ["Thermodynamics", "Heat transfer", "Energy modeling"],
+                    },
+                    {
+                      career: "Robotics Engineer",
+                      description: "Develop robotic systems for manufacturing, healthcare, or defense",
+                      typical_salary: "$80,000-$140,000",
+                      key_courses: ["ME 450", "ME 201", "CS 101", "CS 403"],
+                      skills_needed: ["Controls", "Programming", "Sensors", "Computer vision"],
+                      note: "Consider CS minor for robotics career. Talk to Dr. Patel in the Robotics Lab.",
+                    },
+                  ],
+                },
+              },
+              // ─ Upcoming events
+              {
+                section: "events",
+                title: "Career Center Events",
+                data: {
+                  upcoming: [
+                    { event: "Engineering & Tech Career Fair", date: "Sep 18, 2026", time: "10 AM - 3 PM", location: "Coleman Coliseum", details: "100+ employers. Bring 20+ resumes. Business professional attire." },
+                    { event: "Resume Blitz", date: "Sep 10, 2026", time: "11 AM - 2 PM", location: "Ferguson Center Ballroom", details: "Drop in for a 10-min resume review before the career fair." },
+                    { event: "Mock Interview Night", date: "Oct 8, 2026", time: "5-8 PM", location: "Student Services Center 200", details: "Practice technical and behavioral interviews with industry volunteers." },
+                    { event: "Spring Internship Fair", date: "Jan 28, 2027", time: "10 AM - 3 PM", location: "Coleman Coliseum", details: "Focus on summer 2027 internships. STEM and business tracks." },
+                  ],
+                },
+              },
+              // ─ Hours
+              {
+                section: "hours",
+                title: "Career Center Hours",
+                data: {
+                  hours: [
+                    { day: "Monday-Thursday", open: "8:00 AM", close: "5:00 PM" },
+                    { day: "Friday", open: "8:00 AM", close: "4:00 PM" },
+                  ],
+                  drop_in: "Quick questions: Mon-Thu 1-4 PM (no appointment needed)",
+                  virtual: "Virtual appointments available via Handshake",
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  UA Career Center — " + careerCenter.id);
+
+  // ─── 6. UA Registration & Records (site) ───
+
+  const registrar = await prisma.user.create({
+    data: {
+      email: "registrar@ua.edu",
+      passwordHash: pw,
+      name: "UA Registrar",
+      role: "business",
+      profiles: {
+        create: {
+          type: "site",
+          displayName: "UA Office of the University Registrar",
+          bio: "Handles enrollment, transcripts, degree verification, and academic records. Resources for registration, add/drop, withdrawal, grade appeals, and commencement. Your official academic record is managed here.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "academic",
+          address: "Student Services Center, Suite 101, Tuscaloosa, AL 35487",
+          hours: "Mon-Fri 8:00 AM-5:00 PM",
+          phone: "(205) 348-2020",
+          website: "https://registrar.ua.edu",
+          tags: ["registrar", "registration", "transcripts", "enrollment", "grades", "add-drop", "withdrawal", "commencement", "records"],
+          services: {
+            create: [
+              { name: "Transcript Request", description: "Order official transcripts (electronic or paper).", category: "Records", duration: 10, isBookable: false },
+              { name: "Enrollment Verification", description: "Request enrollment or degree verification letter.", category: "Records", duration: 10, isBookable: false },
+              { name: "Grade Appeal Guidance", description: "Information on the grade appeal process and deadlines.", category: "Academic", duration: 20, isBookable: true },
+            ],
+          },
+          capabilities: {
+            create: [
+              { type: "messaging" },
+              { type: "service_requests" },
+            ],
+          },
+          infoSections: {
+            create: [
+              {
+                section: "services",
+                title: "Registrar Services",
+                data: {
+                  services: [
+                    { name: "Registration", description: "Course registration via myBama. Check your time ticket under Student → Registration." },
+                    { name: "Add/Drop", description: "Add or drop courses during the first week of classes through myBama. No grade penalty." },
+                    { name: "Withdrawal", description: "Withdraw from a course after add/drop period. Receives a 'W' grade (no GPA impact). Deadline varies by semester." },
+                    { name: "Transcripts", description: "Order via the National Student Clearinghouse. $10/electronic, $15/paper. Processing: 3-5 business days." },
+                    { name: "Enrollment Verification", description: "Request through the Clearinghouse or visit our office. Free for current students." },
+                    { name: "Grade Appeals", description: "Must be initiated within 30 days of grade posting. Start with the instructor, then department chair, then dean." },
+                    { name: "Commencement", description: "Apply for graduation via myBama by the posted deadline. Regalia ordered through the campus bookstore." },
+                  ],
+                },
+              },
+              {
+                section: "academic_calendar",
+                title: "Academic Calendar 2026-2027",
+                data: {
+                  fall_2026: [
+                    { event: "Classes Begin", date: "Aug 19, 2026" },
+                    { event: "Labor Day (no classes)", date: "Sep 7, 2026" },
+                    { event: "Last Day to Add", date: "Aug 25, 2026" },
+                    { event: "Last Day to Drop (no record)", date: "Aug 25, 2026" },
+                    { event: "Last Day to Withdraw (W grade)", date: "Oct 16, 2026" },
+                    { event: "Fall Break", date: "Oct 12-13, 2026" },
+                    { event: "Thanksgiving Break", date: "Nov 23-27, 2026" },
+                    { event: "Last Day of Classes", date: "Dec 4, 2026" },
+                    { event: "Final Exams", date: "Dec 7-12, 2026" },
+                    { event: "Commencement", date: "Dec 12, 2026" },
+                  ],
+                  spring_2027: [
+                    { event: "Classes Begin", date: "Jan 6, 2027" },
+                    { event: "MLK Day (no classes)", date: "Jan 19, 2027" },
+                    { event: "Last Day to Add", date: "Jan 12, 2027" },
+                    { event: "Spring Break", date: "Mar 16-20, 2027" },
+                    { event: "Last Day to Withdraw (W grade)", date: "Mar 6, 2027" },
+                    { event: "Last Day of Classes", date: "Apr 24, 2027" },
+                    { event: "Final Exams", date: "Apr 28 - May 2, 2027" },
+                    { event: "Commencement", date: "May 2, 2027" },
+                  ],
+                },
+              },
+              {
+                section: "policies",
+                title: "Registration Policies",
+                data: {
+                  policies: [
+                    { name: "Credit Hour Limits", description: "Default max 18 credits/semester. Overload (19+) requires advisor approval and 3.0+ GPA." },
+                    { name: "Prerequisite Enforcement", description: "Prerequisites are enforced at registration. You cannot register for a course without completing its prereqs." },
+                    { name: "Repeat Policy", description: "A course may be repeated once. The higher grade replaces the lower. Third attempts require dean approval and incur additional fees." },
+                    { name: "Time Ticket", description: "Your registration window is assigned based on credit hours earned. Seniors register first, then juniors, etc." },
+                    { name: "Waitlist", description: "If a section is full, join the waitlist (max 10). You'll be auto-enrolled if a seat opens. Waitlists close 1 day before classes start." },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  UA Registrar — " + registrar.id);
+
+  // ─── 7. Michael Torres — Engineering Academic Advisor (person) ───
+
+  const advisorMike = await prisma.user.create({
+    data: {
+      email: "mtorres@ua.edu",
+      passwordHash: pw,
+      name: "Michael Torres",
+      role: "person",
+      profiles: {
+        create: {
+          type: "person",
+          displayName: "Michael Torres",
+          bio: "Academic advisor for Mechanical Engineering and Aerospace Engineering in the College of Engineering. Focuses on course sequencing, co-op/internship integration, and preparing students for industry or graduate school. 8 years advising at UA.",
+          location: "Tuscaloosa, AL",
+          status: "available",
+          category: "advising",
+          campusRole: "advisor",
+          department: "Mechanical Engineering",
+          title: "Academic Advisor",
+          officeLocation: "Hardaway Hall 112",
+          officeHours: "Mon/Wed/Fri 9:00 AM-4:00 PM, Tue/Thu 9:00 AM-12:00 PM",
+          tags: ["advising", "mechanical-engineering", "aerospace", "degree-planning", "co-op", "internship", "engineering"],
+          skills: {
+            create: [
+              { name: "ME Degree Planning", category: "Advising" },
+              { name: "Co-op Program Coordination", category: "Career" },
+              { name: "FE Exam Prep Guidance", category: "Career" },
+              { name: "Aerospace Pathway Planning", category: "Advising" },
+            ],
+          },
+          services: {
+            create: [
+              { name: "Advising Appointment", description: "Full advising — degree audit, course selection, graduation planning.", category: "Advising", duration: 30, isBookable: true },
+              { name: "Co-op/Internship Planning", description: "Integrate co-op rotations into your degree plan without delaying graduation.", category: "Career", duration: 30, isBookable: true },
+              { name: "Pre-Registration Review", description: "Verify your course selections meet prerequisites and degree requirements.", category: "Advising", duration: 15, isBookable: true },
+              { name: "FE Exam Guidance", description: "Preparing for the Fundamentals of Engineering exam — what to study and when to take it.", category: "Career", duration: 20, isBookable: true },
+            ],
+          },
+          capabilities: {
+            create: [
+              { type: "booking" },
+              { type: "availability" },
+              { type: "messaging" },
+              { type: "service_requests" },
+            ],
+          },
+          infoSections: {
+            create: [
+              {
+                section: "office_hours",
+                title: "Office Hours",
+                data: {
+                  schedule: [
+                    { day: "Monday", start: "9:00", end: "16:00", location: "Hardaway Hall 112" },
+                    { day: "Wednesday", start: "9:00", end: "16:00", location: "Hardaway Hall 112" },
+                    { day: "Friday", start: "9:00", end: "16:00", location: "Hardaway Hall 112" },
+                    { day: "Tuesday", start: "9:00", end: "12:00", location: "Hardaway Hall 112" },
+                    { day: "Thursday", start: "9:00", end: "12:00", location: "Hardaway Hall 112" },
+                  ],
+                },
+              },
+              {
+                section: "faq",
+                title: "Common ME Advising Questions",
+                data: {
+                  questions: [
+                    { q: "Can I do a co-op and still graduate in 4 years?", a: "It's tight but possible with summer courses. Most co-op students take 4.5-5 years. The career advantage is worth it — co-op students have 95%+ job placement at graduation." },
+                    { q: "What's the difference between ME and AEM?", a: "ME is broader (thermo, fluids, design, controls). AEM focuses on aerospace applications — aerodynamics, propulsion, flight mechanics. AEM has more restricted electives but the core is 80% shared." },
+                    { q: "Should I take the FE exam?", a: "Yes, take it senior year while material is fresh. It's required for the PE license, which many employers value. I can point you to prep resources." },
+                    { q: "Can I add a CS minor?", a: "Popular combo. You'd need CS 101, 200, 201, and three 300+ level CS courses (18 credits total). Fits well if you start CS 101 freshman year." },
+                  ],
+                },
+              },
+              {
+                section: "services",
+                title: "Advising Specialties",
+                data: {
+                  services: [
+                    { name: "Co-op Integration", description: "3-rotation co-op plans with Mercedes-Benz, Honda, Nucor, and other local partners" },
+                    { name: "Dual ME/AEM Path", description: "Map out dual-focus coursework for students interested in both ME and Aerospace" },
+                    { name: "Study Abroad Credits", description: "Help mapping international engineering courses to UA ME requirements" },
+                    { name: "Senior Design Team Formation", description: "Guidance on capstone project selection and team matching" },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      },
+      messageSettings: { create: {} },
+    },
+  });
+  console.log("  Michael Torres (ME Advisor) — " + advisorMike.id);
+
+  // =====================================================
   // SAMPLE DATA
   // =====================================================
 
@@ -2028,9 +3146,9 @@ async function main() {
   console.log("  Profiles:      " + profileCount);
   console.log("    Shelbey:     1 (platform owner)");
   console.log("    Professors:  3");
-  console.log("    Advisors:    2");
+  console.log("    Advisors:    5 (Lisa, Marcus, Karen, Michael, + Eng Center)");
   console.log("    Tutors:      3");
-  console.log("    Sites:       4 (dining, library, rec)");
+  console.log("    Sites:       8 (dining, library, rec, catalog, grad school, career center, registrar)");
   console.log("    Opportunities: 4 (research, internship, scholarship)");
   console.log("    Businesses:  3");
   console.log("    Students:    2 (service providers)");
