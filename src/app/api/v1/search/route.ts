@@ -131,6 +131,7 @@ export async function GET(request: NextRequest) {
   const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "20")));
   const offset = (page - 1) * limit;
+  const action = searchParams.get("action"); // Filter by action capability: book, order, message, etc.
 
   // ─── Build WHERE ─────────────────────────────────────
   const andConditions: Prisma.ProfileWhereInput[] = [{ isPublic: true }];
@@ -153,6 +154,19 @@ export async function GET(request: NextRequest) {
     andConditions.push({
       capabilities: {
         some: { type: capability as CapabilityType, isActive: true },
+      },
+    });
+  }
+
+  // Action filter — maps action verbs to capabilities (e.g., action=book → booking)
+  const ACTION_TO_CAP: Record<string, string> = {
+    book: "booking", order: "ordering", message: "messaging",
+    quote: "quotes", request_service: "service_requests", availability: "availability",
+  };
+  if (action && ACTION_TO_CAP[action]) {
+    andConditions.push({
+      capabilities: {
+        some: { type: ACTION_TO_CAP[action] as CapabilityType, isActive: true },
       },
     });
   }
@@ -263,44 +277,81 @@ export async function GET(request: NextRequest) {
   scored.sort((a, b) => b.score - a.score);
 
   return NextResponse.json({
-    results: scored.map(({ profile: p }) => ({
-      id: p.id,
-      type: p.type,
-      name: p.displayName,
-      bio: p.bio,
-      location: p.location,
-      status: p.status,
-      category: p.category,
-      // Campus fields
-      ...(p.campusRole && { campus_role: p.campusRole }),
-      ...(p.department && { department: p.department }),
-      ...(p.title && { title: p.title }),
-      ...(p.tags.length > 0 && { tags: p.tags }),
-      // Opportunity fields
-      ...(p.type === "opportunity" && {
-        opportunity_type: p.opportunityType,
-        deadline: p.deadline?.toISOString(),
-        eligibility: p.eligibility,
-        apply_url: p.applyUrl,
-        compensation: p.compensation,
-      }),
-      // Site fields
-      ...(p.type === "site" && {
-        address: p.address,
-        hours: p.hours,
-      }),
-      capabilities: p.capabilities.map((c: typeof p.capabilities[number]) => c.type),
-      skills: p.skills.map((s: typeof p.skills[number]) => s.name),
-      services: p.services.map((s: typeof p.services[number]) => ({
-        name: s.name,
-        category: s.category,
-        price: s.price,
-      })),
-      available_sections: [...new Set(p.infoSections.map((i: typeof p.infoSections[number]) => i.section))],
-      profile_url: `/api/v1/profile/${p.id}`,
-      info_url: `/api/v1/info/${p.id}`,
-    })),
+    results: scored.map(({ profile: p }) => {
+      // Generate L0 abstract — a one-sentence summary for quick relevance checking
+      const capList = p.capabilities.map((c: typeof p.capabilities[number]) => c.type);
+      const sectionList = [...new Set(p.infoSections.map((i: typeof p.infoSections[number]) => i.section))];
+      const serviceNames = p.services.map((s: typeof p.services[number]) => s.name);
+
+      // Build the abstract
+      const abstractParts: string[] = [];
+      if (p.type === "site") abstractParts.push(`${p.category || "campus"} site`);
+      else if (p.type === "business") abstractParts.push(`${p.category || "local"} business`);
+      else if (p.type === "person" && p.campusRole) abstractParts.push(p.campusRole);
+      else if (p.type === "opportunity") abstractParts.push(`${p.opportunityType || "opportunity"}`);
+      if (serviceNames.length > 0) abstractParts.push(`offers ${serviceNames.slice(0, 3).join(", ")}${serviceNames.length > 3 ? ` +${serviceNames.length - 3} more` : ""}`);
+      if (capList.length > 0) abstractParts.push(`supports ${capList.join(", ")}`);
+      const abstract = abstractParts.join(" — ");
+
+      // Build action hints — tells GPT exactly what it can DO with this entity
+      const actionHints: string[] = [];
+      if (capList.includes("booking")) actionHints.push("POST /api/v1/book");
+      if (capList.includes("ordering")) actionHints.push("POST /api/v1/order");
+      if (capList.includes("availability")) actionHints.push("GET /api/v1/availability");
+      if (capList.includes("quotes")) actionHints.push("POST /api/v1/get_quote");
+      if (capList.includes("service_requests")) actionHints.push("POST /api/v1/request_service");
+
+      return {
+        id: p.id,
+        type: p.type,
+        name: p.displayName,
+        abstract, // L0: one-line summary
+        bio: p.bio,
+        location: p.location,
+        status: p.status,
+        category: p.category,
+        // Campus fields
+        ...(p.campusRole && { campus_role: p.campusRole }),
+        ...(p.department && { department: p.department }),
+        ...(p.title && { title: p.title }),
+        ...(p.tags.length > 0 && { tags: p.tags }),
+        // Opportunity fields
+        ...(p.type === "opportunity" && {
+          opportunity_type: p.opportunityType,
+          deadline: p.deadline?.toISOString(),
+          eligibility: p.eligibility,
+          apply_url: p.applyUrl,
+          compensation: p.compensation,
+        }),
+        // Site fields
+        ...(p.type === "site" && {
+          address: p.address,
+          hours: p.hours,
+        }),
+        capabilities: capList,
+        skills: p.skills.map((s: typeof p.skills[number]) => s.name),
+        services: p.services.map((s: typeof p.services[number]) => ({
+          name: s.name,
+          category: s.category,
+          price: s.price,
+        })),
+        available_sections: sectionList,
+        // L0/L1 browse shortcuts — so GPT can jump straight to the right depth
+        browse_url: `/api/v1/browse/${p.id}`,
+        ...(sectionList.length > 0 && {
+          browse_L1_urls: Object.fromEntries(
+            sectionList.map((s) => [s, `/api/v1/browse/${p.id}/${s}?depth=L1`])
+          ),
+        }),
+        ...(actionHints.length > 0 && { action_endpoints: actionHints }),
+        profile_url: `/api/v1/profile/${p.id}`,
+      };
+    }),
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
-    meta: { agent: true, apiVersion: "v1" },
+    meta: {
+      agent: true,
+      apiVersion: "v1",
+      depth_hint: "Search results include L0 abstracts. Use browse_L1_urls to get full section data in one call.",
+    },
   });
 }
