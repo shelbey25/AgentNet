@@ -2949,6 +2949,70 @@ async function main() {
   }
 
   // =====================================================
+  // SHELBEY'S DEMO MEMORIES
+  // =====================================================
+
+  console.log("\nSeeding Shelbey's demo memories...");
+
+  const shelbeyMemories = [
+    // Identity (always loaded)
+    { key: "major", value: "Computer Science", source: "user_stated" },
+    { key: "year", value: "Sophomore", source: "user_stated" },
+    { key: "classification", value: "Sophomore — 48 credits completed", source: "inferred" },
+    { key: "college", value: "College of Engineering", source: "inferred" },
+    { key: "gpa", value: "3.7 cumulative, 3.8 in-major", source: "user_stated" },
+    { key: "student_id", value: "11598342", source: "user_stated" },
+
+    // Courses (loaded for academic topics)
+    { key: "courses_taken", value: "CS 100, CS 101, CS 200, MATH 125, MATH 126, MATH 227, MATH 301, EN 101, EN 102, PH 101", source: "user_stated" },
+    { key: "courses_planned", value: "CS 201, CS 250, MATH 355, ST 260, PH 102 — Fall 2026", source: "user_stated" },
+    { key: "semester", value: "Fall 2026", source: "inferred" },
+    { key: "credits", value: "48 completed, targeting 15 this semester", source: "inferred" },
+    { key: "track", value: "AI/ML track — wants to take CS 403, CS 457, CS 467", source: "user_stated" },
+
+    // Food & dining (loaded for food topics)
+    { key: "allergy", value: "peanuts — severe (carries EpiPen)", source: "user_stated" },
+    { key: "dietary", value: "No peanuts, prefers high-protein meals", source: "user_stated" },
+    { key: "favorite_food", value: "Grilled chicken, stir fry, caesar salad", source: "user_stated" },
+    { key: "meal_plan", value: "Unlimited meal plan with Dining Dollars", source: "user_stated" },
+    { key: "dining_preference", value: "Lakeside for lunch, Burke for dinner", source: "inferred" },
+    { key: "favorite_coffee", value: "Oat milk latte, no sugar", source: "user_stated" },
+
+    // Career (loaded for career/job topics)
+    { key: "career_interest", value: "AI/ML engineer or research scientist", source: "user_stated" },
+    { key: "internship", value: "Looking for Summer 2027 SWE/ML internships", source: "user_stated" },
+    { key: "skills", value: "Python, TypeScript, Next.js, React, Prisma, OpenAI API", source: "user_stated" },
+    { key: "experience", value: "Building AgentNet (AI campus platform), personal ML projects", source: "user_stated" },
+
+    // Research & grad school (loaded for research/grad topics)
+    { key: "research", value: "Interested in NLP and AI agents, no formal research yet", source: "user_stated" },
+    { key: "grad_interest", value: "Considering MS in CS at UA after undergrad", source: "user_stated" },
+
+    // Scheduling & personal
+    { key: "schedule", value: "Prefer morning classes (9-12). Free MWF afternoons", source: "user_stated" },
+    { key: "advisor", value: "Lisa Nguyen (CS advisor, Houser Hall 127)", source: "inferred" },
+    { key: "phone", value: "205-555-0142", source: "user_stated" },
+
+    // Fitness (loaded for gym topics)
+    { key: "fitness", value: "Goes to rec center 3x/week, likes weightlifting", source: "user_stated" },
+
+    // Barbershop (loaded for barber topics)
+    { key: "barber_preference", value: "Crimson Cuts, usually gets a fade", source: "user_stated" },
+  ];
+
+  for (const mem of shelbeyMemories) {
+    await prisma.userMemory.create({
+      data: {
+        userId: shelbey.id,
+        key: mem.key,
+        value: mem.value,
+        source: mem.source,
+      },
+    });
+  }
+  console.log(`  ${shelbeyMemories.length} memories seeded for Shelbey`);
+
+  // =====================================================
   // ENABLE WEBHOOKS ON ALL PROFILES
   // =====================================================
 
@@ -3159,6 +3223,7 @@ async function main() {
   console.log("  Info Sections: " + infoCount);
   console.log("");
   console.log("  Webhooks:      ALL profiles → n8n webhook");
+  console.log("  Memories:      " + await prisma.userMemory.count() + " (Shelbey's demo preferences)");
   console.log("  Shelbey login: shelbeyousey@gmail.com / Born2007!");
   console.log("  Other logins:  password123");
   console.log("=============================================");

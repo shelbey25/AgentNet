@@ -81,12 +81,132 @@ MEMORY (personalization):
   },
 ];
 
+// ─── SMART MEMORY: keyword → memory key mapping ───────────────────
+// Maps topic keywords found in user messages to relevant memory keys.
+// "Identity" keys are ALWAYS loaded. Others load only when relevant.
+
+const IDENTITY_KEYS = new Set([
+  "name", "major", "year", "student_id", "college", "gpa",
+  "classification", "hometown", "email",
+]);
+
+// keyword → memory key prefixes/exact keys that should be loaded
+const KEYWORD_MEMORY_MAP: Record<string, string[]> = {
+  // Food & dining
+  food:       ["allergy", "dietary", "favorite_food", "cuisine", "meal_plan", "dining", "food_preference", "diet"],
+  eat:        ["allergy", "dietary", "favorite_food", "cuisine", "meal_plan", "dining", "food_preference", "diet"],
+  dining:     ["allergy", "dietary", "favorite_food", "cuisine", "meal_plan", "dining", "food_preference", "diet"],
+  menu:       ["allergy", "dietary", "favorite_food", "cuisine", "meal_plan", "food_preference", "diet"],
+  allergy:    ["allergy", "dietary", "food_preference", "diet"],
+  hungry:     ["allergy", "dietary", "favorite_food", "cuisine", "meal_plan", "food_preference"],
+  restaurant: ["allergy", "dietary", "favorite_food", "cuisine", "food_preference"],
+  order:      ["allergy", "dietary", "favorite_food", "phone", "meal_plan", "food_preference", "last_order", "address"],
+  coffee:     ["favorite_coffee", "coffee", "dietary", "allergy"],
+  // Academic
+  course:     ["major", "minor", "courses_taken", "courses_planned", "semester", "schedule", "gpa", "interests", "track", "credits"],
+  class:      ["major", "minor", "courses_taken", "courses_planned", "semester", "schedule", "gpa", "interests", "track", "credits"],
+  register:   ["major", "minor", "courses_taken", "courses_planned", "semester", "schedule", "gpa", "student_id", "credits", "advisor"],
+  advising:   ["major", "minor", "courses_taken", "courses_planned", "semester", "gpa", "advisor", "track", "credits"],
+  advisor:    ["major", "minor", "advisor", "gpa", "courses_taken", "track"],
+  degree:     ["major", "minor", "courses_taken", "courses_planned", "gpa", "credits", "track"],
+  prerequisite:["major", "courses_taken", "courses_planned", "gpa"],
+  prereq:     ["major", "courses_taken", "courses_planned", "gpa"],
+  graduation: ["major", "minor", "courses_taken", "gpa", "credits", "expected_graduation"],
+  schedule:   ["schedule", "courses_taken", "courses_planned", "semester"],
+  major:      ["major", "minor", "interests", "track"],
+  minor:      ["major", "minor", "interests"],
+  semester:   ["semester", "courses_planned", "schedule", "courses_taken"],
+  gpa:        ["gpa", "major", "courses_taken"],
+  // Career
+  career:     ["major", "interests", "career_interest", "internship", "skills", "resume", "experience"],
+  job:        ["major", "career_interest", "skills", "resume", "experience", "internship"],
+  internship: ["major", "internship", "career_interest", "skills", "gpa", "resume"],
+  resume:     ["major", "skills", "experience", "internship", "career_interest", "resume"],
+  interview:  ["major", "career_interest", "skills", "experience"],
+  // Graduate school
+  graduate:   ["major", "gpa", "research", "grad_interest", "career_interest", "courses_taken"],
+  grad:       ["major", "gpa", "research", "grad_interest", "career_interest"],
+  masters:    ["major", "gpa", "research", "grad_interest"],
+  phd:        ["major", "gpa", "research", "grad_interest"],
+  research:   ["major", "research", "interests", "gpa", "career_interest"],
+  // Booking & services
+  book:       ["student_id", "phone", "schedule"],
+  appointment:["student_id", "phone", "schedule"],
+  tutor:      ["major", "courses_taken", "gpa", "schedule"],
+  tutoring:   ["major", "courses_taken", "gpa", "schedule"],
+  // Personal / misc
+  barber:     ["barber_preference", "phone"],
+  haircut:    ["barber_preference", "phone"],
+  gym:        ["fitness", "schedule", "student_id"],
+  workout:    ["fitness", "schedule"],
+  library:    ["student_id", "schedule"],
+  study:      ["schedule", "major", "courses_taken"],
+};
+
+/**
+ * Select only the memories relevant to the user's current message.
+ * Always includes identity keys. Adds topic-specific keys based on keyword matching.
+ */
+export function selectRelevantMemories(
+  allMemories: Array<{ key: string; value: string }>,
+  userMessage: string
+): { relevant: Array<{ key: string; value: string }>; totalCount: number } {
+  if (!allMemories || allMemories.length === 0) {
+    return { relevant: [], totalCount: 0 };
+  }
+
+  const lowerMsg = userMessage.toLowerCase();
+  const words = lowerMsg.split(/\s+/);
+
+  // Collect all relevant memory key prefixes
+  const relevantPrefixes = new Set<string>();
+
+  for (const word of words) {
+    // Strip punctuation for matching
+    const clean = word.replace(/[^a-z0-9]/g, "");
+    if (KEYWORD_MEMORY_MAP[clean]) {
+      for (const prefix of KEYWORD_MEMORY_MAP[clean]) {
+        relevantPrefixes.add(prefix);
+      }
+    }
+  }
+
+  // Also check for multi-word phrases
+  const phrases = ["grad school", "career path", "study room", "meal plan", "office hours",
+    "career fair", "food preference", "course plan", "degree audit"];
+  for (const phrase of phrases) {
+    if (lowerMsg.includes(phrase)) {
+      const firstWord = phrase.split(" ")[0];
+      if (KEYWORD_MEMORY_MAP[firstWord]) {
+        for (const prefix of KEYWORD_MEMORY_MAP[firstWord]) {
+          relevantPrefixes.add(prefix);
+        }
+      }
+    }
+  }
+
+  // Filter memories: identity keys always included, others only if matched
+  const relevant = allMemories.filter((m) => {
+    // Always include identity keys
+    if (IDENTITY_KEYS.has(m.key)) return true;
+    // Include if the memory key starts with or matches any relevant prefix
+    for (const prefix of relevantPrefixes) {
+      if (m.key === prefix || m.key.startsWith(prefix + "_") || m.key.startsWith(prefix)) return true;
+    }
+    return false;
+  });
+
+  return { relevant, totalCount: allMemories.length };
+}
+
 function buildSystemPrompt(
-  memories?: Array<{ key: string; value: string }>
+  memories?: Array<{ key: string; value: string }>,
+  totalMemoryCount?: number
 ): string {
+  const hasHiddenMemories = totalMemoryCount && memories && totalMemoryCount > memories.length;
   const memoryBlock =
     memories && memories.length > 0
-      ? `\n\nUSER'S SAVED PREFERENCES (most recent first — already known, use proactively):\n${memories.map((m) => `- ${m.key}: ${m.value}`).join("\n")}\n\nYou ALREADY KNOW the above. Use them automatically. Do NOT re-save anything that is already listed above — avoid duplicates. If a preference changes (e.g., new allergy, updated schedule), save the UPDATED value to the SAME key to overwrite it.`
+      ? `\n\nUSER'S RELEVANT PREFERENCES (loaded based on current topic — use proactively):\n${memories.map((m) => `- ${m.key}: ${m.value}`).join("\n")}${hasHiddenMemories ? `\n\n(${totalMemoryCount - memories.length} additional memories exist but are not shown because they aren't relevant to this topic. If you need other preferences, call GET /api/v1/memory to see all of them.)` : ""}\n\nYou ALREADY KNOW the above. Use them automatically. Do NOT re-save anything that is already listed above — avoid duplicates. If a preference changes (e.g., new allergy, updated schedule), save the UPDATED value to the SAME key to overwrite it.`
       : `\n\nThe user has no saved preferences yet.`;
 
   return `You are BamaAgent, the AI assistant for the University of Alabama campus and Tuscaloosa community. You help students, faculty, and visitors navigate campus life.
@@ -100,12 +220,13 @@ ${memoryBlock}
 
 MEMORY RULES:
 - Save preferences to memory using POST /api/v1/memory whenever the user reveals something worth remembering
-- Save: allergies, dietary needs, major, year, interests, favorite foods, schedule, recent orders, bookings made
-- Use CONCISE keys (e.g., "allergy", "major", "favorite_food", "last_order", "schedule")
+- Save: allergies, dietary needs, major, year, interests, favorite foods, schedule, recent orders, bookings made, courses taken, GPA, career interests, advisor
+- Use CONCISE keys (e.g., "allergy", "major", "favorite_food", "last_order", "schedule", "courses_taken", "gpa", "career_interest")
 - Use SHORT values — just the essential facts, not full sentences
 - Do NOT re-save something already in memory above — check first
 - If updating an existing preference, reuse the same key to overwrite
 - Memory saves are instant and non-blocking — save freely without worrying about slowing things down
+- Only RELEVANT memories are loaded above based on the current topic. If you need preferences not shown, call GET /api/v1/memory to fetch all
 
 CRITICAL REASONING RULES:
 
@@ -127,7 +248,8 @@ RULE 3: ANALYZE DATA YOURSELF
 When you retrieve menus, service lists, or other data, YOU must analyze it and give the user a synthesized answer. Do not just dump raw data. Apply the user's preferences, filter items, make recommendations, and explain your reasoning.
 
 RULE 4: USE MEMORY PROACTIVELY
-If the user mentions "my allergy", "my preference", "my schedule", "what I like" — you already have their saved preferences above. Apply them immediately without asking. If they share NEW preferences, save them to memory.
+If the user mentions "my allergy", "my preference", "my schedule", "what I like" — you already have their relevant saved preferences above. Apply them immediately without asking. If they share NEW preferences, save them to memory.
+If a user asks about a topic and you suspect there are saved preferences not loaded (e.g., they ask about food but you don't see dietary info), call GET /api/v1/memory to check for additional preferences before proceeding.
 
 RULE 5: THINK STEP-BY-STEP FOR COMPLEX QUERIES
 Break down what you need:
@@ -376,9 +498,10 @@ export async function runChatStream(
   options?: {
     userId?: string;
     memories?: Array<{ key: string; value: string }>;
+    totalMemoryCount?: number;
   }
 ): Promise<ChatResponse> {
-  const systemPrompt = buildSystemPrompt(options?.memories);
+  const systemPrompt = buildSystemPrompt(options?.memories, options?.totalMemoryCount);
 
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
     { role: "system", content: systemPrompt },
@@ -470,6 +593,7 @@ export async function runChat(
   options?: {
     userId?: string;
     memories?: Array<{ key: string; value: string }>;
+    totalMemoryCount?: number;
   }
 ): Promise<ChatResponse> {
   return runChatNonStream(userMessages, options);
@@ -480,9 +604,10 @@ async function runChatNonStream(
   options?: {
     userId?: string;
     memories?: Array<{ key: string; value: string }>;
+    totalMemoryCount?: number;
   }
 ): Promise<ChatResponse> {
-  const systemPrompt = buildSystemPrompt(options?.memories);
+  const systemPrompt = buildSystemPrompt(options?.memories, options?.totalMemoryCount);
 
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
     { role: "system", content: systemPrompt },

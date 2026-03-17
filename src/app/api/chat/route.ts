@@ -3,7 +3,7 @@
 // Pre-fetches user memories so GPT has full context from the start
 
 import { NextRequest, NextResponse } from "next/server";
-import { runChat } from "@/lib/chat-engine";
+import { runChat, selectRelevantMemories } from "@/lib/chat-engine";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 
@@ -26,26 +26,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user context — pre-fetch memories so GPT has them in the system prompt
+    // Get user context — fetch all memories, then filter by relevance to current message
     const session = await auth();
     const userId = session?.user?.id;
     let memories: Array<{ key: string; value: string }> = [];
+    let totalMemoryCount = 0;
 
     if (userId) {
       try {
         const userMemories = await prisma.userMemory.findMany({
           where: { userId },
           orderBy: { updatedAt: "desc" },
-          take: 50, // Cap to prevent prompt overload
         });
-        memories = userMemories.map((m: { key: string; value: string }) => ({ key: m.key, value: m.value }));
+        const allMemories = userMemories.map((m: { key: string; value: string }) => ({ key: m.key, value: m.value }));
+
+        // Get the latest user message for keyword matching
+        const lastUserMsg = messages.filter((m: { role: string }) => m.role === "user").pop();
+        const userMessage = lastUserMsg?.content || "";
+
+        const { relevant, totalCount } = selectRelevantMemories(allMemories, userMessage);
+        memories = relevant;
+        totalMemoryCount = totalCount;
       } catch {
         // Non-critical — proceed without memories
       }
     }
 
     // Run GPT with tool calling + user context
-    const result = await runChat(messages, { userId, memories });
+    const result = await runChat(messages, { userId, memories, totalMemoryCount });
 
     // Optionally persist to chat session
     let sessionId = session_id;

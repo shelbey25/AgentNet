@@ -2,7 +2,7 @@
 // Sends events as each tool call happens so the UI can show live progress
 
 import { NextRequest } from "next/server";
-import { runChatStream, ChatEvent } from "@/lib/chat-engine";
+import { runChatStream, ChatEvent, selectRelevantMemories } from "@/lib/chat-engine";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 
@@ -24,22 +24,29 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Get user context
+  // Get user context — fetch all memories, then filter by relevance to current message
   const session = await auth();
   const userId = session?.user?.id;
   let memories: Array<{ key: string; value: string }> = [];
+  let totalMemoryCount = 0;
 
   if (userId) {
     try {
       const userMemories = await prisma.userMemory.findMany({
         where: { userId },
         orderBy: { updatedAt: "desc" },
-        take: 50,
       });
-      memories = userMemories.map((m: { key: string; value: string }) => ({
+      const allMemories = userMemories.map((m: { key: string; value: string }) => ({
         key: m.key,
         value: m.value,
       }));
+
+      const lastUserMsg = messages.filter((m: { role: string }) => m.role === "user").pop();
+      const userMessage = lastUserMsg?.content || "";
+
+      const { relevant, totalCount } = selectRelevantMemories(allMemories, userMessage);
+      memories = relevant;
+      totalMemoryCount = totalCount;
     } catch {
       // Non-critical
     }
@@ -72,7 +79,7 @@ export async function POST(request: NextRequest) {
                 break;
             }
           },
-          { userId, memories }
+          { userId, memories, totalMemoryCount }
         );
 
         // Persist to chat session
