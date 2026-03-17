@@ -118,7 +118,7 @@ const VALID_CAPABILITIES: Set<string> = new Set([
 // Filters: q, type (entity_type), status, capability, category, campus_role, department, opportunity_type
 export async function GET(request: NextRequest) {
   if (!checkPublicRateLimit(request)) return rateLimited();
-
+ 
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q") || "";
   const type = searchParams.get("type") || searchParams.get("entity_type");
