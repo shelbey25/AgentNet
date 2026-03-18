@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BamaAgent — AI Campus Assistant for The University of Alabama",
+  title: "BamaAdvisor — AI Academic Advisor for The University of Alabama",
   description:
-    "Chat with AI to find professors, dining, tutors, research opportunities, and local businesses at UA.",
+    "Your AI-powered academic advisor. Get personalized guidance on courses, research, scholarships, career paths, and more at UA.",
 };
 
 export default function RootLayout({
@@ -32,7 +32,7 @@ export default function RootLayout({
       >
         <Providers>
           <Navbar />
-          <main className="max-w-6xl mx-auto px-4 py-8">{children}</main>
+          <main>{children}</main>
         </Providers>
       </body>
     </html>

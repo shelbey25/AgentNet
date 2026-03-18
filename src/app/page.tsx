@@ -1,370 +1,172 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-
-interface ToolCall {
-  endpoint: string;
-  method: string;
-  status?: "pending" | "done" | "error";
-}
-
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-  toolCalls?: ToolCall[];
-}
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [liveToolCalls, setLiveToolCalls] = useState<ToolCall[]>([]);
-  const [agentStatus, setAgentStatus] = useState<string>("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const { data: session } = useSession();
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, liveToolCalls]);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  const sendMessage = async () => {
-    const text = input.trim();
-    if (!text || loading) return;
-
-    const userMsg: Message = { role: "user", content: text };
-    const newMessages = [...messages, userMsg];
-    setMessages(newMessages);
-    setInput("");
-    setLoading(true);
-    setLiveToolCalls([]);
-    setAgentStatus("Thinking...");
-
-    try {
-      // Create session on first message
-      let sid = sessionId;
-      if (!sid) {
-        const sessionRes = await fetch("/api/chat/session", { method: "POST" });
-        const sessionData = await sessionRes.json();
-        sid = sessionData.session_id;
-        setSessionId(sid);
-      }
-
-      const res = await fetch("/api/chat/stream", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: newMessages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-          session_id: sid,
-        }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        setMessages([
-          ...newMessages,
-          { role: "assistant", content: `Error: ${errData.error || "Request failed"}` },
-        ]);
-        return;
-      }
-
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error("No response body");
-
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        let currentEvent = "";
-        for (const line of lines) {
-          if (line.startsWith("event: ")) {
-            currentEvent = line.slice(7).trim();
-          } else if (line.startsWith("data: ") && currentEvent) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              handleSSEEvent(currentEvent, data, newMessages);
-            } catch {
-              // ignore parse errors
-            }
-            currentEvent = "";
-          }
-        }
-      }
-    } catch {
-      setMessages([
-        ...newMessages,
-        { role: "assistant", content: "Sorry, something went wrong. Please try again." },
-      ]);
-    } finally {
-      setLoading(false);
-      setLiveToolCalls([]);
-      setAgentStatus("");
-    }
-  };
-
-  const handleSSEEvent = (
-    event: string,
-    data: Record<string, unknown>,
-    baseMessages: Message[]
-  ) => {
-    switch (event) {
-      case "thinking":
-        setAgentStatus("Thinking...");
-        break;
-
-      case "tool_start":
-        setAgentStatus(`Calling ${data.method} ${data.endpoint}`);
-        setLiveToolCalls((prev) => [
-          ...prev,
-          { method: data.method as string, endpoint: data.endpoint as string, status: "pending" },
-        ]);
-        break;
-
-      case "tool_done":
-        setLiveToolCalls((prev) =>
-          prev.map((tc) =>
-            tc.endpoint === data.endpoint && tc.method === data.method && tc.status === "pending"
-              ? { ...tc, status: data.status === "ok" ? "done" : "error" }
-              : tc
-          )
-        );
-        setAgentStatus("Analyzing results...");
-        break;
-
-      case "message":
-        setMessages([
-          ...baseMessages,
-          {
-            role: "assistant",
-            content: data.content as string,
-            toolCalls: data.tool_calls as ToolCall[],
-          },
-        ]);
-        setLiveToolCalls([]);
-        setAgentStatus("");
-        break;
-
-      case "error":
-        setMessages([
-          ...baseMessages,
-          { role: "assistant", content: `Error: ${data.error}` },
-        ]);
-        break;
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
-  const suggestions = [
-    "Find my CS advisor",
-    "What's for lunch at Lakeside?",
-    "I need a calculus tutor",
-    "Research opportunities in AI",
-    "Book a study room at Gorgas",
-    "Scholarships for freshmen",
+  const features = [
+    {
+      icon: "🎓",
+      title: "Degree Planning",
+      description: "Get personalized course sequences based on your major, interests, and graduation timeline.",
+    },
+    {
+      icon: "🔬",
+      title: "Research Matching",
+      description: "Find professors and labs aligned with your interests. Get intro emails drafted for you.",
+    },
+    {
+      icon: "💰",
+      title: "Scholarship Finder",
+      description: "Discover scholarships you qualify for based on your GPA, major, and background.",
+    },
+    {
+      icon: "📄",
+      title: "Resume & Career",
+      description: "Upload your resume for personalized advice. Match with internships and career paths.",
+    },
+    {
+      icon: "☀️",
+      title: "Summer Planning",
+      description: "Plan your summers strategically — internships, research, study abroad, or courses.",
+    },
+    {
+      icon: "🤝",
+      title: "Student Initiatives",
+      description: "Find or start clubs, projects, and startups. Connect with peers who share your vision.",
+    },
   ];
 
-  const methodColor = (method: string) =>
-    method === "POST"
-      ? "text-amber-600 bg-amber-50"
-      : "text-emerald-600 bg-emerald-50";
-
-  const statusIcon = (status?: string) => {
-    switch (status) {
-      case "pending":
-        return "⏳";
-      case "done":
-        return "✅";
-      case "error":
-        return "❌";
-      default:
-        return "⚡";
-    }
-  };
+  const demoPrompts = [
+    "What scholarships am I eligible for based on my GPA and major?",
+    "Which professors do AI research and are looking for undergrad assistants?",
+    "Review my resume and suggest improvements for software engineering internships",
+    "Plan my next three semesters to graduate on time with a CS degree",
+    "What should I do this summer to strengthen my grad school application?",
+    "Find student initiatives I can join that involve machine learning",
+  ];
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] max-w-3xl mx-auto">
-      {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-2 py-4 space-y-4">
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="text-5xl mb-4">🐘</div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              BamaAgent
-            </h1>
-            <p className="text-gray-500 mb-8 max-w-md">
-              Your AI-powered campus assistant for The University of Alabama.
-              Find professors, dining, tutors, research opportunities, and local businesses.
-            </p>
-            <div className="grid grid-cols-2 gap-2 max-w-lg w-full">
-              {suggestions.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => {
-                    setInput(s);
-                    inputRef.current?.focus();
-                  }}
-                  className="text-left text-sm px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-indigo-50 hover:border-indigo-200 transition-colors text-gray-600 hover:text-indigo-700"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+    <div className="min-h-[calc(100vh-3.5rem)]">
+      {/* Hero */}
+      <section className="bg-[var(--crimson)] text-white py-20 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="text-6xl mb-6">🐘</div>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">
+            BamaAdvisor
+          </h1>
+          <p className="text-xl md:text-2xl text-white/90 mb-3 font-light">
+            Your AI Academic Advisor at The University of Alabama
+          </p>
+          <p className="text-base text-white/70 mb-10 max-w-2xl mx-auto">
+            From your first semester to graduation — personalized guidance on courses, research,
+            scholarships, career paths, and everything in between.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              href="/chat"
+              className="bg-white text-[var(--crimson)] px-8 py-3 rounded-xl font-semibold text-lg hover:bg-gray-100 transition-colors shadow-lg"
             >
-              <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                  msg.role === "user"
-                    ? "bg-indigo-600 text-white"
-                    : "bg-white border border-gray-200 text-gray-800"
-                }`}
+              Start a Conversation
+            </Link>
+            {!session?.user && (
+              <Link
+                href="/auth/register"
+                className="border-2 border-white/50 text-white px-8 py-3 rounded-xl font-medium text-lg hover:bg-white/10 transition-colors"
               >
-                {msg.role === "assistant" ? (
-                  <div className="space-y-2">
-                    <div className="prose prose-sm prose-gray max-w-none [&>h1]:text-lg [&>h1]:font-bold [&>h1]:mt-3 [&>h1]:mb-1 [&>h2]:text-base [&>h2]:font-bold [&>h2]:mt-3 [&>h2]:mb-1 [&>h3]:text-sm [&>h3]:font-semibold [&>h3]:mt-2 [&>h3]:mb-1 [&>p]:my-1.5 [&>p]:leading-relaxed [&>ul]:my-1.5 [&>ul]:pl-4 [&>ol]:my-1.5 [&>ol]:pl-4 [&>li]:my-0.5 [&>li]:leading-relaxed [&_strong]:font-semibold [&>hr]:my-2 [&>blockquote]:border-l-2 [&>blockquote]:border-indigo-300 [&>blockquote]:pl-3 [&>blockquote]:italic [&>blockquote]:text-gray-600 [&>pre]:bg-gray-50 [&>pre]:rounded-lg [&>pre]:p-3 [&>pre]:text-xs [&>pre]:overflow-x-auto [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&>pre_code]:bg-transparent [&>pre_code]:p-0 [&>a]:text-indigo-600 [&>a]:underline [&>a]:hover:text-indigo-800">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {msg.content}
-                      </ReactMarkdown>
-                    </div>
-                    {msg.toolCalls && msg.toolCalls.length > 0 && (
-                      <div className="border-t border-gray-100 pt-2 mt-2">
-                        <details className="group">
-                          <summary className="text-xs text-gray-400 flex items-center gap-1 cursor-pointer hover:text-gray-600">
-                            <span>⚡</span>
-                            {msg.toolCalls.length} API call
-                            {msg.toolCalls.length > 1 ? "s" : ""} made
-                            <span className="ml-1 text-indigo-400 group-open:hidden">
-                              ▸ show
-                            </span>
-                            <span className="ml-1 text-indigo-400 hidden group-open:inline">
-                              ▾ hide
-                            </span>
-                          </summary>
-                          <div className="mt-1.5 space-y-1">
-                            {msg.toolCalls.map((tc, j) => (
-                              <div
-                                key={j}
-                                className="flex items-center gap-2 font-mono text-xs bg-gray-50 px-2 py-1 rounded"
-                              >
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${methodColor(tc.method)}`}>
-                                  {tc.method}
-                                </span>
-                                <span className="text-gray-600 truncate">{tc.endpoint}</span>
-                                <span className="ml-auto">{statusIcon("done")}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </details>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="whitespace-pre-wrap text-sm">
-                    {msg.content}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))
-        )}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 max-w-[85%]">
-              {/* Live tool calls feed */}
-              {liveToolCalls.length > 0 && (
-                <div className="space-y-1.5 mb-2">
-                  {liveToolCalls.map((tc, i) => (
-                    <div
-                      key={i}
-                      className={`flex items-center gap-2 font-mono text-xs px-2 py-1.5 rounded transition-all duration-300 ${
-                        tc.status === "pending"
-                          ? "bg-indigo-50 border border-indigo-100"
-                          : tc.status === "error"
-                            ? "bg-red-50 border border-red-100"
-                            : "bg-gray-50 border border-gray-100"
-                      }`}
-                    >
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${methodColor(tc.method)}`}>
-                        {tc.method}
-                      </span>
-                      <span className="text-gray-600 truncate">{tc.endpoint}</span>
-                      <span className="ml-auto">
-                        {tc.status === "pending" ? (
-                          <span className="inline-block animate-spin text-indigo-500">⟳</span>
-                        ) : (
-                          statusIcon(tc.status)
-                        )}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {/* Status line */}
-              <div className="flex items-center gap-2 text-gray-400 text-sm">
-                <div className="flex gap-1">
-                  <span className="animate-bounce" style={{ animationDelay: "0ms" }}>•</span>
-                  <span className="animate-bounce" style={{ animationDelay: "150ms" }}>•</span>
-                  <span className="animate-bounce" style={{ animationDelay: "300ms" }}>•</span>
-                </div>
-                <span className="text-xs">{agentStatus || "Searching campus..."}</span>
-              </div>
-            </div>
+                Create Account
+              </Link>
+            )}
           </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input area */}
-      <div className="border-t border-gray-200 bg-white px-4 py-3">
-        <div className="flex gap-2 items-end max-w-3xl mx-auto">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask about campus, dining, professors, tutoring, opportunities..."
-            rows={1}
-            className="flex-1 resize-none px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm max-h-32"
-            style={{ minHeight: "44px" }}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={loading || !input.trim()}
-            className="px-4 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {loading ? "..." : "Send"}
-          </button>
         </div>
-        <p className="text-xs text-gray-400 text-center mt-2">
-          BamaAgent — AI-powered campus assistant for The University of Alabama
-        </p>
-      </div>
+      </section>
+
+      {/* Features grid */}
+      <section className="py-16 px-4 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
+            How BamaAdvisor Helps You Succeed
+          </h2>
+          <p className="text-center text-gray-500 mb-10">
+            Powered by AI with deep knowledge of UA&apos;s programs, faculty, and opportunities
+          </p>
+          <div className="grid md:grid-cols-3 gap-6">
+            {features.map((f) => (
+              <div
+                key={f.title}
+                className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="text-3xl mb-3">{f.icon}</div>
+                <h3 className="font-semibold text-gray-900 mb-1">{f.title}</h3>
+                <p className="text-sm text-gray-600 leading-relaxed">{f.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Try it section */}
+      <section className="py-16 px-4 bg-gray-50">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
+            Try Asking...
+          </h2>
+          <p className="text-center text-gray-500 mb-8">
+            Click any prompt to start chatting with your advisor
+          </p>
+          <div className="grid md:grid-cols-2 gap-3">
+            {demoPrompts.map((prompt) => (
+              <Link
+                key={prompt}
+                href={`/chat?prompt=${encodeURIComponent(prompt)}`}
+                className="text-left text-sm px-4 py-3 bg-white border border-gray-200 rounded-lg hover:border-[var(--crimson)] hover:shadow-sm transition-all text-gray-700 hover:text-[var(--crimson)]"
+              >
+                &ldquo;{prompt}&rdquo;
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Upload CTA */}
+      <section className="py-16 px-4 bg-[var(--cream-light)]">
+        <div className="max-w-3xl mx-auto text-center">
+          <div className="text-4xl mb-4">📋</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">
+            Build Your Student Portfolio
+          </h2>
+          <p className="text-gray-600 mb-6 max-w-xl mx-auto">
+            Upload your resume, transcript, or personal essay. BamaAdvisor uses them to give
+            you hyper-personalized advice and match you with the right opportunities.
+          </p>
+          <Link
+            href={session?.user ? "/settings" : "/auth/register"}
+            className="inline-block btn-crimson px-8 py-3 rounded-xl font-semibold text-lg shadow-md"
+          >
+            {session?.user ? "Upload Documents" : "Get Started"}
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-gray-400 py-8 px-4">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🐘</span>
+            <span className="text-white font-semibold">BamaAdvisor</span>
+          </div>
+          <p className="text-sm">
+            Built for UA students. Roll Tide!
+          </p>
+          <div className="flex gap-4 text-sm">
+            <Link href="/chat" className="hover:text-white transition-colors">Chat</Link>
+            <Link href="/opportunities" className="hover:text-white transition-colors">Opportunities</Link>
+            <Link href="/search" className="hover:text-white transition-colors">Browse</Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

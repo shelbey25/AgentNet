@@ -2,13 +2,23 @@
 @plugin "@tailwindcss/typography";
 
 :root {
-  --background: #f9fafb;
+  --background: #f8f9fa;
   --foreground: #111827;
+  --crimson: #9E1B32;
+  --crimson-dark: #7a1527;
+  --crimson-light: #c4324d;
+  --cream: #f2e6c9;
+  --cream-light: #faf5eb;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-crimson: var(--crimson);
+  --color-crimson-dark: var(--crimson-dark);
+  --color-crimson-light: var(--crimson-light);
+  --color-cream: var(--cream);
+  --color-cream-light: var(--cream-light);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -17,4 +27,18 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Crimson button style */
+.btn-crimson {
+  background-color: var(--crimson);
+  color: white;
+  transition: background-color 0.2s;
+}
+.btn-crimson:hover {
+  background-color: var(--crimson-dark);
+}
+.btn-crimson:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
