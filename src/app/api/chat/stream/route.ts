@@ -1,8 +1,7 @@
 // POST /api/chat/stream — SSE streaming chat endpoint
-// Sends events as each tool call happens so the UI can show live progress
 
 import { NextRequest } from "next/server";
-import { runChatStream, ChatEvent, selectRelevantMemories } from "@/lib/chat-engine";
+import { streamChat } from "@/lib/chat-engine";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 
@@ -24,96 +23,28 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Get user context — fetch all memories, then filter by relevance to current message
   const session = await auth();
   const userId = session?.user?.id;
-  let memories: Array<{ key: string; value: string }> = [];
-  let totalMemoryCount = 0;
 
-  if (userId) {
-    try {
-      const userMemories = await prisma.userMemory.findMany({
-        where: { userId },
-        orderBy: { updatedAt: "desc" },
-      });
-      const allMemories = userMemories.map((m: { key: string; value: string }) => ({
-        key: m.key,
-        value: m.value,
-      }));
-
-      const lastUserMsg = messages.filter((m: { role: string }) => m.role === "user").pop();
-      const userMessage = lastUserMsg?.content || "";
-
-      const { relevant, totalCount } = selectRelevantMemories(allMemories, userMessage);
-      memories = relevant;
-      totalMemoryCount = totalCount;
-    } catch {
-      // Non-critical
-    }
+  let sessionId = session_id;
+  if (!sessionId && userId) {
+    const chatSession = await prisma.chatSession.create({
+      data: { userId, title: "New Chat" },
+    });
+    sessionId = chatSession.id;
   }
 
-  // Create a readable stream that sends SSE events
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    async start(controller) {
-      const send = (event: string, data: unknown) => {
-        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
-      };
+  if (!sessionId || !userId) {
+    return new Response(JSON.stringify({ error: "Authentication required" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
-      try {
-        const result = await runChatStream(
-          messages,
-          (event: ChatEvent) => {
-            switch (event.type) {
-              case "thinking":
-                send("thinking", {});
-                break;
-              case "tool_start":
-                send("tool_start", { method: event.method, endpoint: event.endpoint });
-                break;
-              case "tool_done":
-                send("tool_done", { method: event.method, endpoint: event.endpoint, status: event.status });
-                break;
-              case "message":
-                send("message", { content: event.content, tool_calls: event.toolCalls });
-                break;
-            }
-          },
-          { userId, memories, totalMemoryCount }
-        );
+  const lastUserMsg = messages.filter((m: { role: string }) => m.role === "user").pop();
+  const userMessage = lastUserMsg?.content || "";
 
-        // Persist to chat session
-        if (session_id) {
-          try {
-            const lastUserMsg = messages[messages.length - 1];
-            if (lastUserMsg?.role === "user") {
-              await prisma.chatMessage.create({
-                data: { sessionId: session_id, role: "user", content: lastUserMsg.content },
-              });
-            }
-            await prisma.chatMessage.create({
-              data: {
-                sessionId: session_id,
-                role: "assistant",
-                content: result.message,
-                toolCalls: result.toolCalls
-                  ? JSON.parse(JSON.stringify(result.toolCalls))
-                  : undefined,
-              },
-            });
-          } catch {
-            // Non-critical
-          }
-        }
-      } catch (error) {
-        send("error", {
-          error: error instanceof Error ? error.message : "Internal server error",
-        });
-      } finally {
-        controller.close();
-      }
-    },
-  });
+  const stream = await streamChat(sessionId, userMessage, userId);
 
   return new Response(stream, {
     headers: {

@@ -175,12 +175,12 @@ export default function ChatPage() {
   };
 
   const suggestions = [
-    "What scholarships can I apply for?",
-    "Help me plan my Fall semester",
-    "Which professors do ML research?",
-    "Review my resume for internships",
-    "What should I do this summer?",
-    "Find research opportunities in CS",
+    "Search for businesses near me",
+    "Find available services I can book",
+    "What entities are on the platform?",
+    "Show me sites and their hours",
+    "Help me find a service provider",
+    "What opportunities are available?",
   ];
 
   const methodColor = (method: string) =>
@@ -201,11 +201,10 @@ export default function ChatPage() {
       <div className="flex-1 overflow-y-auto px-2 py-4 space-y-4">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="text-5xl mb-4">🐘</div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">BamaAdvisor</h1>
+            <div className="text-5xl mb-4">�</div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">AgentNet Chat</h1>
             <p className="text-gray-500 mb-8 max-w-md">
-              Your AI academic advisor. Ask about courses, research, scholarships,
-              career paths, or anything else at UA.
+              Your AI assistant for the AgentNet platform. Search entities, browse details, and take actions.
             </p>
             <div className="grid grid-cols-2 gap-2 max-w-lg w-full">
               {suggestions.map((s) => (
@@ -315,7 +314,7 @@ export default function ChatPage() {
           </button>
         </div>
         <p className="text-xs text-gray-400 text-center mt-2">
-          BamaAdvisor — AI Academic Advisor for The University of Alabama
+          AgentNet — Universal Entity Platform
         </p>
       </div>
     </div>

@@ -7,12 +7,9 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log("Seeding BamaAdvisor — AI Academic Advisor for UA...\n");
+  console.log("Seeding AgentNet — Universal Entity Platform...\n");
 
   // Clean in dependency order
-  await prisma.opportunityMatch.deleteMany();
-  await prisma.studentInitiative.deleteMany();
-  await prisma.studentPortfolio.deleteMany();
   await prisma.webhookLog.deleteMany();
   await prisma.claimRequest.deleteMany();
   await prisma.connectedAccount.deleteMany();
@@ -53,7 +50,7 @@ async function main() {
         create: {
           type: "person",
           displayName: "Shelbey Ousey",
-          bio: "Computer Science student at UA. Interested in AI, full-stack development, and building products. Creator of BamaAdvisor.",
+          bio: "Computer Science student at UA. Interested in AI, full-stack development, and building products.",
           location: "Tuscaloosa, AL",
           status: "available",
           category: "student",
@@ -90,8 +87,8 @@ async function main() {
       profiles: {
         create: {
           type: "person",
-          displayName: "BamaAdvisor Admin",
-          bio: "University of Alabama platform administrator for BamaAdvisor.",
+          displayName: "AgentNet Admin",
+          bio: "University of Alabama platform administrator.",
           location: "Tuscaloosa, AL",
           status: "available",
           category: "staff",
@@ -973,36 +970,6 @@ async function main() {
   console.log("  Jordan Taylor (Tutor) — " + tutorMath.id);
 
   // =====================================================
-  // STUDENT INITIATIVES (demo data)
-  // =====================================================
-  console.log("Creating student initiatives...");
-
-  await prisma.studentInitiative.createMany({
-    data: [
-      {
-        userId: shelbey.id,
-        title: "BamaAdvisor — AI Academic Advising Platform",
-        description: "Building an AI-powered academic advisor for UA students. Uses GPT-4o with deep campus data to help students plan courses, find research, match with scholarships, and navigate their college journey.",
-        category: "startup",
-        tags: ["ai", "nextjs", "typescript", "education", "llm"],
-        lookingFor: ["frontend developers", "UI/UX designers", "data curators"],
-        contactEmail: "shelbeyousey@gmail.com",
-        website: "https://github.com/shelbey25/AgentNet",
-      },
-      {
-        userId: shelbey.id,
-        title: "UA AI Club",
-        description: "Student org exploring artificial intelligence. Weekly paper readings, project showcases, speaker series with industry professionals. All majors welcome.",
-        category: "club",
-        tags: ["ai", "machine-learning", "deep-learning", "nlp", "research"],
-        lookingFor: ["members", "project leads", "event coordinators"],
-        contactEmail: "ai-club@ua.edu",
-      },
-    ],
-  });
-  console.log("  2 student initiatives created");
-
-  // =====================================================
   // SUMMARY
   // =====================================================
   const profileCount = await prisma.profile.count();
@@ -1011,28 +978,16 @@ async function main() {
   const skillCount = await prisma.skill.count();
   const infoCount = await prisma.infoSection.count();
   const memCount = await prisma.userMemory.count();
-  const initCount = await prisma.studentInitiative.count();
 
   console.log("\n=============================================");
-  console.log("BamaAdvisor — AI Academic Advisor — Seeded!");
+  console.log("AgentNet — Universal Entity Platform — Seeded!");
   console.log("");
   console.log("  Profiles:       " + profileCount);
-  console.log("    Student:      Shelbey Ousey (shelbeyousey@gmail.com)");
-  console.log("    Admin:        Shelbey Admin (sbyousey@crimson.ua.edu)");
-  console.log("    CS Profs:     4 (Mitchell, Chen, Johnson, Thompson)");
-  console.log("    Other Profs:  2 (Rivera/Finance, Park/ME)");
-  console.log("    Advisors:     2 (Wells/CS, Harris/Engineering)");
-  console.log("    Sites:        5 (Catalog, Lakeside, Gorgas, Rec, Career, Grad School)");
-  console.log("    Opportunities: 6 (research, internships, scholarships, volunteer)");
-  console.log("    Businesses:   1 (Crimson Cuts)");
-  console.log("    Tutors:       1 (Jordan Taylor)");
-  console.log("");
   console.log("  Capabilities:   " + capCount);
   console.log("  Services:       " + serviceCount);
   console.log("  Skills:         " + skillCount);
   console.log("  Info Sections:  " + infoCount);
-  console.log("  Memories:       " + memCount + " (Shelbey's preferences)");
-  console.log("  Initiatives:    " + initCount);
+  console.log("  Memories:       " + memCount);
   console.log("");
   console.log("  Student login:  shelbeyousey@gmail.com / Born2007!");
   console.log("  Admin login:    sbyousey@crimson.ua.edu / Born2007!");

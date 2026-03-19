@@ -1,6 +1,5 @@
-// BamaAdvisor Chat Engine — AI Academic Advisor for The University of Alabama
-// GPT function-calling access to the AgentNet platform API + advisor intelligence
-// Agent → GPT → agentnet_api tool → localhost HTTP call → response → GPT reasons
+// AgentNet Platform Chat Engine — Generic AI assistant for the AgentNet platform
+// GPT function-calling access to the platform API (search, browse, actions, memory)
 
 import OpenAI from "openai";
 import { prisma } from "@/lib/db";
@@ -13,67 +12,49 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
-// The base URL for internal API calls (localhost in dev)
 function getBaseUrl(): string {
   return process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 }
 
-// Tool definition — this is the "MCP" tool GPT uses
+// ─── Tool definition ────────────────────────────────────
 const AGENTNET_TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
     type: "function",
     function: {
       name: "agentnet_api",
-      description: `Execute an API call on the BamaAdvisor / AgentNet platform. You can search professors, browse courses, find opportunities, message advisors, and more.
+      description: `Execute an API call on the AgentNet platform. You can search entities (people, businesses, sites, opportunities), browse details with tiered depth, and take actions.
 
 Entity types: person, business, site, opportunity
 
 ENDPOINTS:
 
 SEARCH:
-- GET /api/v1/search?q=<query>&type=<person|business|site|opportunity>&campus_role=<professor|student|tutor|advisor>&department=<dept>&opportunity_type=<research|internship|scholarship|job>&capability=<ordering|booking|quotes|availability>&category=<category>&action=<book|order|message|quote|request_service|availability>
-  Search returns L0 abstracts, browse_L1_urls, and action_endpoints for each result.
+- GET /api/v1/search?q=<query>&type=<person|business|site|opportunity>&capability=<ordering|booking|quotes|availability>&category=<category>&action=<book|order|message|quote|request_service|availability>
 
-BROWSE (hierarchical with TIERED DEPTH — L0, L1, L2):
-- GET /api/v1/browse/<entity_id> → L0: overview + section abstracts + L1 shortcut URLs
-- GET /api/v1/browse/<entity_id>/<section>?depth=L1 → L1: ALL subsection data in ONE response (PREFERRED)
-- GET /api/v1/browse/<entity_id>/<section>/<sub> → L2: single subsection detail (only when needed)
+BROWSE (tiered depth — L0, L1, L2):
+- GET /api/v1/browse/<entity_id> → L0: overview + section abstracts
+- GET /api/v1/browse/<entity_id>/<section>?depth=L1 → L1: ALL subsection data (PREFERRED)
+- GET /api/v1/browse/<entity_id>/<section>/<sub> → L2: single subsection detail
 
 PROFILE:
-- GET /api/v1/profile/<id> → full profile, capabilities, campus info
+- GET /api/v1/profile/<id> → full profile + capabilities
 
 ACTIONS:
 - GET /api/v1/availability?business_id=<id>&date=<YYYY-MM-DD>&service=<name>
-- POST /api/v1/book body: {"business_id":"<id>","service":"<name>","time":"<ISO>","custom_fields":{...}}
-- POST /api/v1/order body: {"business_id":"<id>","items":[{"id":"<id>","qty":<n>}],"pickup_time":"<HH:MM>","custom_fields":{...}}
+- POST /api/v1/book body: {"business_id":"<id>","service":"<name>","time":"<ISO>","custom_fields":{}}
+- POST /api/v1/order body: {"business_id":"<id>","items":[{"id":"<id>","qty":<n>}],"pickup_time":"<HH:MM>"}
 - POST /api/v1/message body: {"recipient_id":"<id>","message":"<text>","subject":"<sub>"}
-- POST /api/v1/request_service body: {"provider_id":"<id>","service":"<name>","time_preference":"<pref>","custom_fields":{...}}
-- POST /api/v1/get_quote body: {"business_id":"<id>","service":"<name>","details":{},"custom_fields":{...}}
+- POST /api/v1/request_service body: {"provider_id":"<id>","service":"<name>","time_preference":"<pref>"}
 
-STATUS:
-- GET /api/v1/order/<id> | /api/v1/booking/<id> | /api/v1/quote/<id> | /api/v1/message/<id>
-
-MEMORY (personalization):
-- GET /api/v1/memory — get all saved preferences
-- POST /api/v1/memory body: {"key":"<key>","value":"<value>"} — save a preference`,
+MEMORY:
+- GET /api/v1/memory?userId=<user_id> → get stored memories
+- POST /api/v1/memory body: {"userId":"<user_id>","key":"<key>","value":"<value>"} → save memory`,
       parameters: {
         type: "object",
         properties: {
-          method: {
-            type: "string",
-            enum: ["GET", "POST"],
-            description: "HTTP method",
-          },
-          path: {
-            type: "string",
-            description:
-              "API path starting with /api/v1/. Include query parameters for GET requests.",
-          },
-          body: {
-            type: "object",
-            description:
-              "Request body for POST requests. Must include all required fields.",
-          },
+          method: { type: "string", enum: ["GET", "POST", "PATCH", "DELETE"] },
+          path: { type: "string", description: "API path starting with /api/v1/" },
+          body: { type: "object", description: "Request body for POST/PATCH" },
         },
         required: ["method", "path"],
       },
@@ -81,631 +62,252 @@ MEMORY (personalization):
   },
 ];
 
-// ─── SMART MEMORY: keyword → memory key mapping ───────────────────
-// Maps topic keywords found in user messages to relevant memory keys.
-// "Identity" keys are ALWAYS loaded. Others load only when relevant.
-
-const IDENTITY_KEYS = new Set([
-  "name", "major", "year", "student_id", "college", "gpa",
-  "classification", "hometown", "email", "minor", "track",
-  "expected_graduation", "advisor",
-]);
-
-// keyword → memory key prefixes/exact keys that should be loaded
-const KEYWORD_MEMORY_MAP: Record<string, string[]> = {
-  // Food & dining
-  food:       ["allergy", "dietary", "favorite_food", "cuisine", "meal_plan", "dining", "food_preference", "diet"],
-  eat:        ["allergy", "dietary", "favorite_food", "cuisine", "meal_plan", "dining", "food_preference", "diet"],
-  dining:     ["allergy", "dietary", "favorite_food", "cuisine", "meal_plan", "dining", "food_preference", "diet"],
-  menu:       ["allergy", "dietary", "favorite_food", "cuisine", "meal_plan", "food_preference", "diet"],
-  allergy:    ["allergy", "dietary", "food_preference", "diet"],
-  hungry:     ["allergy", "dietary", "favorite_food", "cuisine", "meal_plan", "food_preference"],
-  restaurant: ["allergy", "dietary", "favorite_food", "cuisine", "food_preference"],
-  order:      ["allergy", "dietary", "favorite_food", "phone", "meal_plan", "food_preference", "last_order", "address"],
-  coffee:     ["favorite_coffee", "coffee", "dietary", "allergy"],
-  // Academic
-  course:     ["major", "minor", "courses_taken", "courses_planned", "semester", "schedule", "gpa", "interests", "track", "credits"],
-  class:      ["major", "minor", "courses_taken", "courses_planned", "semester", "schedule", "gpa", "interests", "track", "credits"],
-  register:   ["major", "minor", "courses_taken", "courses_planned", "semester", "schedule", "gpa", "student_id", "credits", "advisor"],
-  advising:   ["major", "minor", "courses_taken", "courses_planned", "semester", "gpa", "advisor", "track", "credits"],
-  advisor:    ["major", "minor", "advisor", "gpa", "courses_taken", "track"],
-  degree:     ["major", "minor", "courses_taken", "courses_planned", "gpa", "credits", "track"],
-  prerequisite:["major", "courses_taken", "courses_planned", "gpa"],
-  prereq:     ["major", "courses_taken", "courses_planned", "gpa"],
-  graduation: ["major", "minor", "courses_taken", "gpa", "credits", "expected_graduation"],
-  schedule:   ["schedule", "courses_taken", "courses_planned", "semester"],
-  major:      ["major", "minor", "interests", "track"],
-  minor:      ["major", "minor", "interests"],
-  semester:   ["semester", "courses_planned", "schedule", "courses_taken"],
-  gpa:        ["gpa", "major", "courses_taken"],
-  // Career
-  career:     ["major", "interests", "career_interest", "internship", "skills", "resume", "experience"],
-  job:        ["major", "career_interest", "skills", "resume", "experience", "internship"],
-  internship: ["major", "internship", "career_interest", "skills", "gpa", "resume"],
-  interview:  ["major", "career_interest", "skills", "experience"],
-  // Graduate school
-  graduate:   ["major", "gpa", "research", "grad_interest", "career_interest", "courses_taken"],
-  grad:       ["major", "gpa", "research", "grad_interest", "career_interest"],
-  masters:    ["major", "gpa", "research", "grad_interest"],
-  phd:        ["major", "gpa", "research", "grad_interest"],
-  research:   ["major", "research", "interests", "gpa", "career_interest"],
-  // Booking & services
-  book:       ["student_id", "phone", "schedule"],
-  appointment:["student_id", "phone", "schedule"],
-  tutor:      ["major", "courses_taken", "gpa", "schedule"],
-  tutoring:   ["major", "courses_taken", "gpa", "schedule"],
-  // Scholarships & financial
-  scholarship:["major", "gpa", "interests", "career_interest", "skills", "experience", "research", "financial_need"],
-  financial:  ["financial_need", "scholarship", "gpa"],
-  award:      ["major", "gpa", "interests", "skills", "research"],
-  // Portfolio & documents
-  resume:     ["major", "skills", "experience", "internship", "career_interest", "resume", "projects"],
-  portfolio:  ["major", "skills", "experience", "research", "career_interest", "resume", "projects", "courses_taken"],
-  transcript: ["major", "gpa", "courses_taken", "credits", "courses_planned"],
-  essay:      ["interests", "career_interest", "goals", "strengths", "grad_interest"],
-  // Initiatives & clubs
-  initiative: ["interests", "skills", "career_interest", "major"],
-  club:       ["interests", "skills", "major"],
-  startup:    ["interests", "skills", "career_interest", "projects"],
-  project:    ["interests", "skills", "career_interest", "major", "projects"],
-  // Summer & planning
-  summer:     ["major", "internship", "research", "career_interest", "interests", "courses_planned", "grad_interest"],
-  plan:       ["major", "courses_taken", "courses_planned", "gpa", "credits", "career_interest", "interests"],
-  opportunity:["major", "gpa", "skills", "interests", "career_interest", "research"],
-  // Personal / misc
-  barber:     ["barber_preference", "phone"],
-  haircut:    ["barber_preference", "phone"],
-  gym:        ["fitness", "schedule", "student_id"],
-  workout:    ["fitness", "schedule"],
-  library:    ["student_id", "schedule"],
-  study:      ["schedule", "major", "courses_taken"],
-};
-
-/**
- * Select only the memories relevant to the user's current message.
- * Always includes identity keys. Adds topic-specific keys based on keyword matching.
- */
-export function selectRelevantMemories(
-  allMemories: Array<{ key: string; value: string }>,
-  userMessage: string
-): { relevant: Array<{ key: string; value: string }>; totalCount: number } {
-  if (!allMemories || allMemories.length === 0) {
-    return { relevant: [], totalCount: 0 };
+// ─── System prompt ────────────────────────────────────
+function buildSystemPrompt(memories: { key: string; value: string }[]): string {
+  let memoryContext = "";
+  if (memories.length > 0) {
+    memoryContext = `\n\nUser context (from memory):\n${memories.map((m) => `- ${m.key}: ${m.value}`).join("\n")}`;
   }
 
-  const lowerMsg = userMessage.toLowerCase();
-  const words = lowerMsg.split(/\s+/);
+  return `You are the AgentNet Assistant — a helpful AI that connects users with entities on the AgentNet platform.
 
-  // Collect all relevant memory key prefixes
-  const relevantPrefixes = new Set<string>();
+AgentNet is a universal entity platform. It hosts profiles for people, businesses, sites, and opportunities. You can search for entities, browse their details (using tiered L0/L1/L2 depth), and take actions like booking, ordering, messaging, or requesting services.
 
-  for (const word of words) {
-    // Strip punctuation for matching
-    const clean = word.replace(/[^a-z0-9]/g, "");
-    if (KEYWORD_MEMORY_MAP[clean]) {
-      for (const prefix of KEYWORD_MEMORY_MAP[clean]) {
-        relevantPrefixes.add(prefix);
-      }
-    }
-  }
+BROWSING STRATEGY:
+1. Search first to find matching entities
+2. Browse L0 for an overview
+3. Browse L1 for full section details (preferred — gets everything at once)
+4. Browse L2 only for a specific subsection if needed
 
-  // Also check for multi-word phrases
-  const phrases = ["grad school", "career path", "study room", "meal plan", "office hours",
-    "career fair", "food preference", "course plan", "degree audit"];
-  for (const phrase of phrases) {
-    if (lowerMsg.includes(phrase)) {
-      const firstWord = phrase.split(" ")[0];
-      if (KEYWORD_MEMORY_MAP[firstWord]) {
-        for (const prefix of KEYWORD_MEMORY_MAP[firstWord]) {
-          relevantPrefixes.add(prefix);
-        }
-      }
-    }
-  }
-
-  // Filter memories: identity keys always included, others only if matched
-  const relevant = allMemories.filter((m) => {
-    // Always include identity keys
-    if (IDENTITY_KEYS.has(m.key)) return true;
-    // Include if the memory key starts with or matches any relevant prefix
-    for (const prefix of relevantPrefixes) {
-      if (m.key === prefix || m.key.startsWith(prefix + "_") || m.key.startsWith(prefix)) return true;
-    }
-    return false;
-  });
-
-  return { relevant, totalCount: allMemories.length };
+Always be helpful, concise, and action-oriented. When showing results, format them clearly with names, descriptions, and available actions.${memoryContext}`;
 }
 
-function buildSystemPrompt(
-  memories?: Array<{ key: string; value: string }>,
-  totalMemoryCount?: number
-): string {
-  const hasHiddenMemories = totalMemoryCount && memories && totalMemoryCount > memories.length;
-  const memoryBlock =
-    memories && memories.length > 0
-      ? `\n\nUSER'S RELEVANT PREFERENCES (loaded based on current topic — use proactively):\n${memories.map((m) => `- ${m.key}: ${m.value}`).join("\n")}${hasHiddenMemories ? `\n\n(${totalMemoryCount - memories.length} additional memories exist but are not shown because they aren't relevant to this topic. If you need other preferences, call GET /api/v1/memory to see all of them.)` : ""}\n\nYou ALREADY KNOW the above. Use them automatically. Do NOT re-save anything that is already listed above — avoid duplicates. If a preference changes (e.g., new allergy, updated schedule), save the UPDATED value to the SAME key to overwrite it.`
-      : `\n\nThe user has no saved preferences yet.`;
-
-  return `You are BamaAdvisor, the AI Academic Advisor for The University of Alabama. You are a knowledgeable, proactive advisor who helps UA students plan their academic journey, find research and career opportunities, connect with professors, and make the most of their time at UA.
-
-Your core competencies:
-1. **Degree Planning** — course sequences, prerequisite chains, graduation timelines, semester planning
-2. **Research Matching** — connecting students with professors and labs aligned with their interests
-3. **Scholarship & Opportunity Finding** — matching students with scholarships, internships, research positions based on their profile
-4. **Resume & Career Guidance** — reviewing resumes, suggesting improvements, recommending career paths
-5. **Summer Strategy** — planning productive summers (internships, research, study abroad, courses)
-6. **Student Initiatives** — helping students find or start clubs, projects, and organizations
-
-You have access to the AgentNet platform API via the agentnet_api tool. The platform has four entity types:
-- **person**: professors, advisors, tutors, students — with research areas, office hours, courses taught
-- **business**: local Tuscaloosa businesses and campus services
-- **site**: campus locations (Career Center, libraries, rec centers, dining) with resources and hours
-- **opportunity**: research positions, internships, scholarships, jobs — with requirements, deadlines, and matching
-
-STUDENT PORTFOLIO CONTEXT:
-Students may have uploaded documents (resume, transcript, personal essay) via the Settings page. This data is stored in their StudentPortfolio and creates detailed matchTags for opportunity matching. When advising a student, consider their full profile — not just what they say in chat, but also their saved memories (major, GPA, courses taken, interests, career goals).
-${memoryBlock}
-
-MEMORY RULES:
-- Save preferences to memory using POST /api/v1/memory whenever the user reveals something worth remembering
-- Save: allergies, dietary needs, major, year, interests, favorite foods, schedule, recent orders, bookings made, courses taken, GPA, career interests, advisor
-- Use CONCISE keys (e.g., "allergy", "major", "favorite_food", "last_order", "schedule", "courses_taken", "gpa", "career_interest")
-- Use SHORT values — just the essential facts, not full sentences
-- Do NOT re-save something already in memory above — check first
-- If updating an existing preference, reuse the same key to overwrite
-- Memory saves are instant and non-blocking — save freely without worrying about slowing things down
-- Only RELEVANT memories are loaded above based on the current topic. If you need preferences not shown, call GET /api/v1/memory to fetch all
-
-CRITICAL REASONING RULES:
-
-YOU ARE A MULTI-STEP REASONING AGENT. You have up to 10 tool calls per conversation. USE THEM. Do not give up after one search. Chain multiple calls to build up the information needed to fully answer the user.
-
-RULE 1: NEVER GIVE A GENERIC "I COULDN'T FIND" ANSWER
-If a search does not return what you need, try a different query, browse entities you found, or approach the problem from another angle. Exhaust your options before saying you cannot help.
-
-RULE 2: USE L1 BROWSE FOR EFFICIENT DATA RETRIEVAL
-When the user asks about menus, food, services, facilities, hours, pricing — use the TIERED BROWSE system:
-- Search results include browse_L1_urls — use these to jump directly to full section data
-- GET /api/v1/browse/<id>/<section>?depth=L1 returns ALL subsection data in ONE call
-- NEVER drill into each subsection individually unless you need to isolate a single item
-- Example: To get Lakeside's full menu, use ONE call: GET /api/v1/browse/<id>/menu?depth=L1
-  This returns all stations (grill, pizza, salad, etc.) with all items in a single response
-  Do NOT call /menu/grill, then /menu/pizza, then /menu/salad separately — that wastes tool calls
-
-RULE 3: ANALYZE DATA YOURSELF
-When you retrieve menus, service lists, or other data, YOU must analyze it and give the user a synthesized answer. Do not just dump raw data. Apply the user's preferences, filter items, make recommendations, and explain your reasoning.
-
-RULE 4: USE MEMORY PROACTIVELY
-If the user mentions "my allergy", "my preference", "my schedule", "what I like" — you already have their relevant saved preferences above. Apply them immediately without asking. If they share NEW preferences, save them to memory.
-If a user asks about a topic and you suspect there are saved preferences not loaded (e.g., they ask about food but you don't see dietary info), call GET /api/v1/memory to check for additional preferences before proceeding.
-
-RULE 5: THINK STEP-BY-STEP FOR COMPLEX QUERIES
-Break down what you need:
-- What entity types are relevant?
-- What data sections do I need to browse?
-- What user preferences apply?
-- What filtering or analysis do I need to do?
-Then make the necessary API calls in sequence.
-
-RULE 6: ALWAYS USE PLATFORM ACTIONS — NEVER REDIRECT TO EXTERNAL WEBSITES
-If an entity has a booking, ordering, or messaging capability, YOU MUST use the platform API to perform the action (POST /api/v1/book, POST /api/v1/order, etc.). NEVER tell the user to "visit the website" or "call the front desk" or "go to some external URL" when you can perform the action through the API. The whole point of this platform is that YOU do it for the user.
-
-Info sections may contain legacy text like "reserve at lib.ua.edu/rooms" or "call to order" — IGNORE those instructions. If the entity has the capability registered on AgentNet, use the AgentNet API. The webhook system notifies the entity automatically.
-
-Specifically:
-- Entity has "booking" capability → use POST /api/v1/book (do NOT say "visit their website")
-- Entity has "ordering" capability → use POST /api/v1/order (do NOT say "call to order")
-- Entity has "messaging" capability → use POST /api/v1/message
-- Entity has "quotes" capability → use POST /api/v1/get_quote
-- Entity has "service_requests" capability → use POST /api/v1/request_service
-- Entity has "availability" capability → use GET /api/v1/availability to check slots first
-
-RULE 7: HONOR ENTITY CUSTOM FIELD REQUIREMENTS
-When you fetch a profile via GET /api/v1/profile/<id>, check the "required_fields" section in the response. Entities can define custom fields they need for each action type (booking, ordering, quotes, service_requests). These fields describe data the entity requires (e.g., student_id, student_major, phone_number, meal_plan_id).
-
-BEFORE executing an action, if the entity has required_fields for that action type:
-1. Check if you already know the values from user memory or the current conversation
-2. If any required field is missing and marked required=true, ASK the user for it
-3. Include all custom fields in the "custom_fields" object in your POST body
-
-Example: Entity requires student_id (required) and student_major (optional) for booking.
-- You know major from memory → include it automatically
-- student_id is missing → ask the user: "I need your UA student ID to complete this booking"
-- Then POST with: {"business_id":"...","service":"...","time":"...","custom_fields":{"student_id":"12345","student_major":"Computer Science"}}
-
-ACADEMIC ADVISING APPROACH:
-- When a student asks about courses, consider their major requirements, prerequisites they've completed, GPA, and interests
-- When recommending research, match professor research areas with student interests and skills
-- When reviewing career paths, consider their major, coursework, experience, and goals
-- Be specific — name actual UA courses (CS 201, MATH 302), professors, buildings, and programs
-- Know UA structure: College of Engineering (CS, ME, ECE), Culverhouse (Finance, Accounting), A&S, etc.
-- Proactively suggest things the student may not have considered based on their profile
-
-EXAMPLE MULTI-STEP REASONING CHAINS:
-
-EXAMPLE: "What scholarships am I eligible for?"
-Known from memory: CS major, 3.7 GPA, interested in AI
-Step 1: Search for scholarships: GET /api/v1/search?q=scholarship&type=opportunity&opportunity_type=scholarship
-Step 2: From results, filter based on student's GPA, major, and interests
-Step 3: Present each matching scholarship with requirements, deadlines, and why they're a good fit
-Step 4: Save any new preference data mentioned by the student
-
-EXAMPLE: "Which professors do AI research?"
-Step 1: Search: GET /api/v1/search?q=artificial intelligence&type=person&campus_role=professor
-Step 2: Browse each professor's research section: GET /api/v1/browse/<id>/research?depth=L1
-Step 3: If student has relevant skills/courses, mention alignment
-Step 4: Offer to draft an intro email: POST /api/v1/message
-
-EXAMPLE: "Plan my next 3 semesters"
-Known from memory: CS major, sophomore, courses_taken = CS 100/200/201, MATH 125/126
-Step 1: Search for CS degree requirements: GET /api/v1/search?q=computer science courses&type=person&campus_role=advisor
-Step 2: Browse the CS course catalog and advisor's curriculum info
-Step 3: Build a semester-by-semester plan respecting prerequisites
-Step 4: Present the plan with course names, numbers, and credit hours
-
-EXAMPLE: "Review my resume for SWE internships"
-Step 1: Check if student has uploaded resume (check memory for resume-related keys)
-Step 2: If not, suggest they upload at Settings page. If yes, use context.
-Step 3: Search for SWE internships: GET /api/v1/search?q=software engineering internship&type=opportunity
-Step 4: Compare resume skills with internship requirements
-Step 5: Give specific, actionable resume improvement suggestions
-
-EXAMPLE: "What should I do this summer?"
-Known from memory: CS major, sophomore, interested in ML, GPA 3.7
-Step 1: Search for summer opportunities: GET /api/v1/search?q=summer&type=opportunity
-Step 2: Search for research positions: GET /api/v1/search?q=research&type=opportunity&opportunity_type=research
-Step 3: Consider the student's year (sophomore = good time for first research or internship)
-Step 4: Present a strategic summer plan with options ranked by impact
-
-EXAMPLE: "Find me a tutor for data structures"
-Step 1: Search for tutors: GET /api/v1/search?q=data structures tutor&campus_role=tutor
-Step 2: Check availability: GET /api/v1/availability?business_id=<id>
-Step 3: Present options and book with confirmation
-
-BROWSE STRATEGY (L0 → L1 → L2):
-1. SEARCH first — results include L0 abstracts + browse_L1_urls + action_endpoints
-2. Use L0 abstracts to decide which entities are relevant WITHOUT browsing
-3. Use browse_L1_urls to get FULL section data in ONE call: GET /api/v1/browse/<id>/<section>?depth=L1
-4. Only use L2 (no depth param) if you need ONE specific subsection detail
-5. ANALYZE the data and give the user a useful, filtered answer
-
-NEVER drill section-by-section. L1 gives you everything at once.
-Example: To get Lakeside's entire menu, use ONE call: GET /api/v1/browse/<id>/menu?depth=L1
-NOT six separate calls for grill, pizza, salad, comfort, international, desserts.
-
-ADVISOR GUIDANCE:
-- Professors/advisors: search by campus_role or department — always mention their research areas
-- Research/internships: search type=opportunity, mention deadlines and requirements, match with student profile
-- Scholarships: search opportunity_type=scholarship, compare with student GPA, major, and background
-- Courses: search by department or browse advisor profiles for curriculum info
-- Career services: search for Career Center site, browse resources
-- Tutoring: search campus_role=tutor, browse their services and availability
-- Student initiatives: mention the Initiatives page for clubs and projects
-
-ACTION DECISION FLOW:
-When a user asks to DO something (book, order, message, etc.):
-1. Search to find the entity
-2. Check if the entity's profile includes the required capability (search results show capabilities)
-3. If capability EXISTS → use the platform API to execute it. Period.
-4. If capability DOES NOT EXIST → only then suggest alternatives
-
-GENERAL RULES:
-- Always search before acting — never guess IDs
-- When the user says "book it" or "do it" — EXECUTE the action, do not re-explain how
-- Be warm, encouraging, and knowledgeable — like a great academic advisor
-- "Roll Tide!" is always appropriate
-- Format course names (CS 201), deadlines, and GPAs clearly
-- If you don't have enough info about the student, ask follow-up questions
-- Proactively save important academic info to memory (major, courses taken, GPA, interests, career goals)
-- When discussing courses, always mention prerequisites if relevant
-- When discussing opportunities, always mention deadlines and requirements
-- Suggest next steps — don't just answer the question, help them plan ahead
-- Today's date is ${new Date().toISOString().split("T")[0]}
-- Current academic context: Spring 2026 semester, Fall 2026 registration coming soon`;
-}
-
-// Execute a tool call against the local API
-// For memory endpoints, use direct prisma calls (bypasses auth for internal use)
+// ─── Execute tool call ──────────────────────────────────
 async function executeToolCall(
-  method: string,
-  path: string,
-  body?: Record<string, unknown>,
-  userId?: string
+  name: string,
+  args: Record<string, unknown>
 ): Promise<string> {
-  // Intercept memory endpoints — handle directly via prisma (avoids auth issues)
-  if (userId && path.startsWith("/api/v1/memory")) {
-    return handleMemoryCall(method, path, body, userId);
-  }
+  if (name !== "agentnet_api") return JSON.stringify({ error: "Unknown tool" });
 
-  const baseUrl = getBaseUrl();
-  const url = `${baseUrl}${path}`;
+  const method = (args.method as string) || "GET";
+  const path = args.path as string;
+  const body = args.body as Record<string, unknown> | undefined;
 
   try {
+    const url = `${getBaseUrl()}${path}`;
     const options: RequestInit = {
       method,
       headers: { "Content-Type": "application/json" },
     };
-
-    if (method === "POST" && body) {
+    if (body && (method === "POST" || method === "PATCH")) {
       options.body = JSON.stringify(body);
     }
 
     const res = await fetch(url, options);
     const data = await res.json();
-    return JSON.stringify(data);
+    return JSON.stringify(data).slice(0, 8000);
   } catch (error) {
     return JSON.stringify({
-      error: `Failed to call ${method} ${path}: ${error instanceof Error ? error.message : "Unknown error"}`,
+      error: error instanceof Error ? error.message : "API call failed",
     });
   }
 }
 
-// Direct prisma handler for memory operations (bypasses HTTP auth)
-async function handleMemoryCall(
-  method: string,
-  _path: string,
-  body?: Record<string, unknown>,
-  userId?: string
-): Promise<string> {
-  if (!userId) {
-    return JSON.stringify({ error: "No user context for memory operations" });
-  }
+// ─── Chat (non-streaming) ────────────────────────────────
+export async function chat(
+  sessionId: string,
+  userMessage: string,
+  userId: string
+): Promise<{ reply: string; toolCalls?: unknown[] }> {
+  const openai = getOpenAI();
 
-  try {
-    if (method === "GET") {
-      const memories = await prisma.userMemory.findMany({
-        where: { userId },
-        orderBy: { updatedAt: "desc" },
-      });
-      return JSON.stringify({
-        memories: memories.map((m: { key: string; value: string; source: string | null; updatedAt: Date }) => ({
-          key: m.key,
-          value: m.value,
-          source: m.source,
-          updated_at: m.updatedAt.toISOString(),
-        })),
-      });
-    }
+  // Load memories
+  const memories = await prisma.userMemory.findMany({ where: { userId } });
+  const memPairs = memories.map((m) => ({ key: m.key, value: m.value }));
 
-    if (method === "POST" && body) {
-      const { key, value, source } = body as {
-        key: string;
-        value: string;
-        source?: string;
-      };
+  // Load recent messages
+  const recent = await prisma.chatMessage.findMany({
+    where: { sessionId },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
 
-      if (!key || !value) {
-        return JSON.stringify({ error: "key and value are required" });
-      }
-
-      const validKey = /^[a-z0-9_]{1,50}$/;
-      if (!validKey.test(key)) {
-        return JSON.stringify({
-          error:
-            "key must be lowercase alphanumeric with underscores, max 50 chars",
-        });
-      }
-
-      // Fire-and-forget — don't block GPT waiting for memory saves
-      prisma.userMemory.upsert({
-        where: { userId_key: { userId, key } },
-        update: { value, source: source || "chat" },
-        create: { userId, key, value, source: source || "chat" },
-      }).catch((err: Error) => console.error("Memory save failed:", err.message));
-
-      return JSON.stringify({
-        saved: { key, value },
-      });
-    }
-
-    return JSON.stringify({ error: "Unsupported memory operation" });
-  } catch (error) {
-    return JSON.stringify({
-      error: `Memory operation failed: ${error instanceof Error ? error.message : "Unknown"}`,
-    });
-  }
-}
-
-export interface ChatRequest {
-  messages: Array<{ role: "user" | "assistant"; content: string }>;
-  sessionId?: string;
-}
-
-export interface ChatResponse {
-  message: string;
-  toolCalls?: Array<{
-    endpoint: string;
-    method: string;
-    result: string;
-  }>;
-}
-
-// Event types for streaming
-export type ChatEvent =
-  | { type: "tool_start"; method: string; endpoint: string }
-  | { type: "tool_done"; method: string; endpoint: string; status: "ok" | "error" }
-  | { type: "thinking" }
-  | { type: "message"; content: string; toolCalls: Array<{ endpoint: string; method: string }> };
-
-// Streaming version — yields events as each tool call happens
-export async function runChatStream(
-  userMessages: Array<{ role: "user" | "assistant"; content: string }>,
-  onEvent: (event: ChatEvent) => void,
-  options?: {
-    userId?: string;
-    memories?: Array<{ key: string; value: string }>;
-    totalMemoryCount?: number;
-  }
-): Promise<ChatResponse> {
-  const systemPrompt = buildSystemPrompt(options?.memories, options?.totalMemoryCount);
-
-  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-    { role: "system", content: systemPrompt },
-    ...userMessages.map((m) => ({
+  const history: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = recent
+    .reverse()
+    .map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
-    })),
+    }));
+
+  // Save user message
+  await prisma.chatMessage.create({
+    data: { sessionId, role: "user", content: userMessage },
+  });
+
+  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    { role: "system", content: buildSystemPrompt(memPairs) },
+    ...history,
+    { role: "user", content: userMessage },
   ];
 
-  const toolCallLog: Array<{
-    endpoint: string;
-    method: string;
-    result: string;
-  }> = [];
+  let response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages,
+    tools: AGENTNET_TOOLS,
+    tool_choice: "auto",
+  });
 
-  // Loop until GPT gives a final text response (max 10 tool call rounds)
-  for (let i = 0; i < 10; i++) {
-    onEvent({ type: "thinking" });
+  const allToolCalls: unknown[] = [];
 
-    const completion = await getOpenAI().chat.completions.create({
+  // Tool call loop (max 5 iterations)
+  let iterations = 0;
+  while (response.choices[0].message.tool_calls && iterations < 5) {
+    const assistantMsg = response.choices[0].message;
+    messages.push(assistantMsg);
+
+    for (const tc of assistantMsg.tool_calls!) {
+      const fn = tc as { function: { name: string; arguments: string }; id: string };
+      const args = JSON.parse(fn.function.arguments);
+      const result = await executeToolCall(fn.function.name, args);
+      allToolCalls.push({ name: fn.function.name, args, result: JSON.parse(result) });
+
+      messages.push({
+        role: "tool",
+        tool_call_id: tc.id,
+        content: result,
+      });
+    }
+
+    response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages,
       tools: AGENTNET_TOOLS,
       tool_choice: "auto",
     });
-
-    const choice = completion.choices[0];
-
-    if (choice.finish_reason === "tool_calls" || choice.message.tool_calls) {
-      // GPT wants to call tools
-      messages.push(choice.message);
-
-      for (const toolCall of choice.message.tool_calls || []) {
-        if (toolCall.type !== "function") continue;
-        const fn = toolCall.function;
-        const args = JSON.parse(fn.arguments);
-
-        // Emit tool_start event BEFORE executing
-        onEvent({ type: "tool_start", method: args.method, endpoint: args.path });
-
-        const result = await executeToolCall(
-          args.method,
-          args.path,
-          args.body,
-          options?.userId
-        );
-
-        const isError = result.includes('"error"');
-        onEvent({ type: "tool_done", method: args.method, endpoint: args.path, status: isError ? "error" : "ok" });
-
-        toolCallLog.push({
-          endpoint: args.path,
-          method: args.method,
-          result,
-        });
-
-        messages.push({
-          role: "tool",
-          tool_call_id: toolCall.id,
-          content: result,
-        });
-      }
-    } else {
-      // GPT gave a final text response
-      const finalToolCalls = toolCallLog.map((tc) => ({ endpoint: tc.endpoint, method: tc.method }));
-      const content = choice.message.content || "I couldn't generate a response.";
-
-      onEvent({ type: "message", content, toolCalls: finalToolCalls });
-
-      return {
-        message: content,
-        toolCalls: toolCallLog.length > 0 ? toolCallLog : undefined,
-      };
-    }
+    iterations++;
   }
 
-  const fallback = "I made several API calls but couldn't complete the task. Try being more specific.";
-  onEvent({ type: "message", content: fallback, toolCalls: toolCallLog.map((tc) => ({ endpoint: tc.endpoint, method: tc.method })) });
+  const reply = response.choices[0].message.content || "I wasn't able to generate a response.";
 
-  return {
-    message: fallback,
-    toolCalls: toolCallLog,
-  };
+  // Save assistant message
+  await prisma.chatMessage.create({
+    data: {
+      sessionId,
+      role: "assistant",
+      content: reply,
+      toolCalls: allToolCalls.length ? JSON.stringify(allToolCalls) : undefined,
+    },
+  });
+
+  return { reply, toolCalls: allToolCalls.length ? allToolCalls : undefined };
 }
 
-// Non-streaming version (kept for backward compat)
-export async function runChat(
-  userMessages: Array<{ role: "user" | "assistant"; content: string }>,
-  options?: {
-    userId?: string;
-    memories?: Array<{ key: string; value: string }>;
-    totalMemoryCount?: number;
-  }
-): Promise<ChatResponse> {
-  return runChatNonStream(userMessages, options);
-}
+// ─── Stream chat ─────────────────────────────────────────
+export async function streamChat(
+  sessionId: string,
+  userMessage: string,
+  userId: string
+): Promise<ReadableStream> {
+  const openai = getOpenAI();
 
-async function runChatNonStream(
-  userMessages: Array<{ role: "user" | "assistant"; content: string }>,
-  options?: {
-    userId?: string;
-    memories?: Array<{ key: string; value: string }>;
-    totalMemoryCount?: number;
-  }
-): Promise<ChatResponse> {
-  const systemPrompt = buildSystemPrompt(options?.memories, options?.totalMemoryCount);
+  const memories = await prisma.userMemory.findMany({ where: { userId } });
+  const memPairs = memories.map((m) => ({ key: m.key, value: m.value }));
 
-  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-    { role: "system", content: systemPrompt },
-    ...userMessages.map((m) => ({
+  const recent = await prisma.chatMessage.findMany({
+    where: { sessionId },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
+
+  const history: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = recent
+    .reverse()
+    .map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
-    })),
-  ];
+    }));
 
-  const toolCallLog: Array<{
-    endpoint: string;
-    method: string;
-    result: string;
-  }> = [];
+  await prisma.chatMessage.create({
+    data: { sessionId, role: "user", content: userMessage },
+  });
 
-  for (let i = 0; i < 10; i++) {
-    const completion = await getOpenAI().chat.completions.create({
-      model: "gpt-4o",
-      messages,
-      tools: AGENTNET_TOOLS,
-      tool_choice: "auto",
-    });
-
-    const choice = completion.choices[0];
-
-    if (choice.finish_reason === "tool_calls" || choice.message.tool_calls) {
-      messages.push(choice.message);
-
-      for (const toolCall of choice.message.tool_calls || []) {
-        if (toolCall.type !== "function") continue;
-        const fn = toolCall.function;
-        const args = JSON.parse(fn.arguments);
-        const result = await executeToolCall(
-          args.method,
-          args.path,
-          args.body,
-          options?.userId
-        );
-
-        toolCallLog.push({
-          endpoint: args.path,
-          method: args.method,
-          result,
-        });
-
-        messages.push({
-          role: "tool",
-          tool_call_id: toolCall.id,
-          content: result,
-        });
-      }
-    } else {
-      return {
-        message: choice.message.content || "I couldn't generate a response.",
-        toolCalls: toolCallLog.length > 0 ? toolCallLog : undefined,
+  return new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+      const send = (event: string, data: unknown) => {
+        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
       };
-    }
-  }
 
-  return {
-    message: "I made several API calls but couldn't complete the task. Try being more specific.",
-    toolCalls: toolCallLog,
-  };
+      try {
+        const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+          { role: "system", content: buildSystemPrompt(memPairs) },
+          ...history,
+          { role: "user", content: userMessage },
+        ];
+
+        // Non-streaming tool call phase first
+        let toolResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages,
+          tools: AGENTNET_TOOLS,
+          tool_choice: "auto",
+        });
+
+        let iterations = 0;
+        while (toolResponse.choices[0].message.tool_calls && iterations < 5) {
+          const assistantMsg = toolResponse.choices[0].message;
+          messages.push(assistantMsg);
+
+          for (const tc of assistantMsg.tool_calls!) {
+            const fn = tc as { function: { name: string; arguments: string }; id: string };
+            const args = JSON.parse(fn.function.arguments);
+            send("tool_call", { name: fn.function.name, args });
+
+            const result = await executeToolCall(fn.function.name, args);
+            send("tool_result", { name: fn.function.name, result: JSON.parse(result) });
+
+            messages.push({
+              role: "tool",
+              tool_call_id: fn.id,
+              content: result,
+            });
+          }
+
+          toolResponse = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages,
+            tools: AGENTNET_TOOLS,
+            tool_choice: "auto",
+          });
+          iterations++;
+        }
+
+        // If no more tool calls, stream final response
+        if (!toolResponse.choices[0].message.tool_calls) {
+          // Use the already-obtained response content
+          const content = toolResponse.choices[0].message.content || "";
+          // Stream it chunk by chunk for UX
+          const words = content.split(" ");
+          let fullReply = "";
+          for (let i = 0; i < words.length; i += 3) {
+            const chunk = words.slice(i, i + 3).join(" ") + " ";
+            fullReply += chunk;
+            send("token", { content: chunk });
+            await new Promise((r) => setTimeout(r, 20));
+          }
+
+          send("done", { fullReply: fullReply.trim() });
+
+          await prisma.chatMessage.create({
+            data: { sessionId, role: "assistant", content: fullReply.trim() },
+          });
+        }
+      } catch (error) {
+        send("error", {
+          message: error instanceof Error ? error.message : "Stream failed",
+        });
+      } finally {
+        controller.close();
+      }
+    },
+  });
 }

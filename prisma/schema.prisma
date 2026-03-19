@@ -135,9 +135,6 @@ model User {
   memories           UserMemory[]
   connectedAccounts  ConnectedAccount[]
   claimRequests      ClaimRequest[]
-  portfolio          StudentPortfolio?
-  initiatives        StudentInitiative[]
-  opportunityMatches OpportunityMatch[]
 
   @@map("users")
 }
@@ -209,7 +206,6 @@ model Profile {
   actionLogs      ActionLog[]
   claimRequests   ClaimRequest[]
   webhookLogs     WebhookLog[]
-  opportunityMatches OpportunityMatch[]
 
   @@index([userId])
   @@index([status])
@@ -574,88 +570,3 @@ model WebhookLog {
   @@map("webhook_logs")
 }
 
-// ─── STUDENT PORTFOLIO ─────────────────────────────────
-// Personality portfolio built from resume, transcript, essay uploads
-// All fields optional — students upload what they want
-
-model StudentPortfolio {
-  id          String   @id @default(uuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Resume data (parsed)
-  resumeRaw       String?  // Original text content
-  resumeSkills    String[] @default([])
-  resumeExperience Json?   // [{title, company, dates, description}]
-  resumeEducation  Json?   // [{school, degree, dates, gpa}]
-  resumeProjects   Json?   // [{name, description, tech}]
-
-  // Transcript data (parsed)
-  transcriptRaw      String?
-  courseHistory       Json?   // [{code, name, grade, semester, credits}]
-  cumulativeGPA      Float?
-  majorGPA           Float?
-  creditsCompleted   Int?
-  creditsRemaining   Int?
-
-  // Essay / personal statement
-  essayRaw           String?
-  careerGoals        String[] @default([])
-  interests          String[] @default([])
-  strengths          String[] @default([])
-  personalityTraits  String[] @default([])
-
-  // Computed profile
-  matchTags          String[] @default([]) // Tags for opportunity matching
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("student_portfolios")
-}
-
-// ─── STUDENT INITIATIVES ───────────────────────────────
-// Student-led projects, clubs, or startups that may recruit others
-
-model StudentInitiative {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title       String
-  description String
-  category    String   // "club", "startup", "project", "research", "volunteer"
-  tags        String[] @default([])
-  lookingFor  String[] @default([]) // ["developers", "designers", "marketing"]
-  contactEmail String?
-  website     String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([userId])
-  @@index([category])
-  @@map("student_initiatives")
-}
-
-// ─── OPPORTUNITY MATCHES ───────────────────────────────
-// Tracks opportunities pushed to students by admin or matching engine
-
-model OpportunityMatch {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  profileId   String   // The opportunity profile being matched
-  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  matchScore  Float?   // 0-100 relevance score
-  reason      String?  // Why this was matched
-  status      String   @default("new") // "new", "viewed", "saved", "dismissed", "applied"
-  pushedBy    String?  // admin user ID if manually pushed
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([userId, profileId])
-  @@index([userId])
-  @@index([profileId])
-  @@index([status])
-  @@map("opportunity_matches")
-}

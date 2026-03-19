@@ -1,171 +1,96 @@
-"use client";
-
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 
 export default function Home() {
-  const { data: session } = useSession();
-
-  const features = [
-    {
-      icon: "🎓",
-      title: "Degree Planning",
-      description: "Get personalized course sequences based on your major, interests, and graduation timeline.",
-    },
-    {
-      icon: "🔬",
-      title: "Research Matching",
-      description: "Find professors and labs aligned with your interests. Get intro emails drafted for you.",
-    },
-    {
-      icon: "💰",
-      title: "Scholarship Finder",
-      description: "Discover scholarships you qualify for based on your GPA, major, and background.",
-    },
-    {
-      icon: "📄",
-      title: "Resume & Career",
-      description: "Upload your resume for personalized advice. Match with internships and career paths.",
-    },
-    {
-      icon: "☀️",
-      title: "Summer Planning",
-      description: "Plan your summers strategically — internships, research, study abroad, or courses.",
-    },
-    {
-      icon: "🤝",
-      title: "Student Initiatives",
-      description: "Find or start clubs, projects, and startups. Connect with peers who share your vision.",
-    },
-  ];
-
-  const demoPrompts = [
-    "What scholarships am I eligible for based on my GPA and major?",
-    "Which professors do AI research and are looking for undergrad assistants?",
-    "Review my resume and suggest improvements for software engineering internships",
-    "Plan my next three semesters to graduate on time with a CS degree",
-    "What should I do this summer to strengthen my grad school application?",
-    "Find student initiatives I can join that involve machine learning",
-  ];
-
   return (
     <div className="min-h-[calc(100vh-3.5rem)]">
       {/* Hero */}
-      <section className="bg-[var(--crimson)] text-white py-20 px-4">
+      <section className="bg-gradient-to-br from-[var(--crimson)] to-[var(--crimson-dark)] text-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="text-6xl mb-6">🐘</div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">
-            BamaAdvisor
-          </h1>
-          <p className="text-xl md:text-2xl text-white/90 mb-3 font-light">
-            Your AI Academic Advisor at The University of Alabama
+          <h1 className="text-5xl font-bold mb-4">🔗 AgentNet</h1>
+          <p className="text-xl text-white/90 mb-2">Universal Entity Platform</p>
+          <p className="text-white/70 max-w-2xl mx-auto mb-8">
+            A unified API for discovering, browsing, and interacting with any entity — people, businesses, sites, and opportunities. Build consumer apps on top of AgentNet.
           </p>
-          <p className="text-base text-white/70 mb-10 max-w-2xl mx-auto">
-            From your first semester to graduation — personalized guidance on courses, research,
-            scholarships, career paths, and everything in between.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              href="/chat"
-              className="bg-white text-[var(--crimson)] px-8 py-3 rounded-xl font-semibold text-lg hover:bg-gray-100 transition-colors shadow-lg"
-            >
-              Start a Conversation
+          <div className="flex gap-4 justify-center flex-wrap">
+            <Link href="/chat" className="bg-white text-[var(--crimson)] px-6 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-colors">
+              Try the Chat
             </Link>
-            {!session?.user && (
-              <Link
-                href="/auth/register"
-                className="border-2 border-white/50 text-white px-8 py-3 rounded-xl font-medium text-lg hover:bg-white/10 transition-colors"
-              >
-                Create Account
-              </Link>
-            )}
+            <Link href="/search" className="border-2 border-white/50 text-white px-6 py-3 rounded-xl font-semibold hover:bg-white/10 transition-colors">
+              Browse Entities
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* Features grid */}
-      <section className="py-16 px-4 bg-white">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
-            How BamaAdvisor Helps You Succeed
-          </h2>
-          <p className="text-center text-gray-500 mb-10">
-            Powered by AI with deep knowledge of UA&apos;s programs, faculty, and opportunities
-          </p>
-          <div className="grid md:grid-cols-3 gap-6">
-            {features.map((f) => (
-              <div
-                key={f.title}
-                className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow"
-              >
-                <div className="text-3xl mb-3">{f.icon}</div>
-                <h3 className="font-semibold text-gray-900 mb-1">{f.title}</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">{f.description}</p>
-              </div>
-            ))}
+      {/* Features */}
+      <section className="max-w-5xl mx-auto py-16 px-4">
+        <h2 className="text-3xl font-bold text-center mb-12">Platform Capabilities</h2>
+        <div className="grid md:grid-cols-3 gap-8">
+          <div className="bg-white rounded-xl shadow-sm border p-6">
+            <div className="text-3xl mb-3">🔍</div>
+            <h3 className="text-lg font-semibold mb-2">Search & Discovery</h3>
+            <p className="text-gray-600 text-sm">Search across all entity types with filters for type, capability, category, and available actions.</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border p-6">
+            <div className="text-3xl mb-3">📊</div>
+            <h3 className="text-lg font-semibold mb-2">Tiered Browsing (L0/L1/L2)</h3>
+            <p className="text-gray-600 text-sm">Progressive disclosure — L0 overview, L1 section details, L2 deep-dive. Efficient for both AI and humans.</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border p-6">
+            <div className="text-3xl mb-3">⚡</div>
+            <h3 className="text-lg font-semibold mb-2">Actions</h3>
+            <p className="text-gray-600 text-sm">Book appointments, place orders, send messages, request services, and check availability — all through the API.</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border p-6">
+            <div className="text-3xl mb-3">🧠</div>
+            <h3 className="text-lg font-semibold mb-2">Memory</h3>
+            <p className="text-gray-600 text-sm">Per-user key-value memory store. Consumer apps can save context that persists across sessions.</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border p-6">
+            <div className="text-3xl mb-3">🔌</div>
+            <h3 className="text-lg font-semibold mb-2">Webhooks</h3>
+            <p className="text-gray-600 text-sm">Entities can register webhooks for real-time notifications on bookings, orders, and messages.</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border p-6">
+            <div className="text-3xl mb-3">🏗️</div>
+            <h3 className="text-lg font-semibold mb-2">Entity CRUD</h3>
+            <p className="text-gray-600 text-sm">Create and manage profiles, info sections, capabilities, services, and skills via the entities API.</p>
           </div>
         </div>
       </section>
 
-      {/* Try it section */}
-      <section className="py-16 px-4 bg-gray-50">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
-            Try Asking...
-          </h2>
-          <p className="text-center text-gray-500 mb-8">
-            Click any prompt to start chatting with your advisor
-          </p>
-          <div className="grid md:grid-cols-2 gap-3">
-            {demoPrompts.map((prompt) => (
-              <Link
-                key={prompt}
-                href={`/chat?prompt=${encodeURIComponent(prompt)}`}
-                className="text-left text-sm px-4 py-3 bg-white border border-gray-200 rounded-lg hover:border-[var(--crimson)] hover:shadow-sm transition-all text-gray-700 hover:text-[var(--crimson)]"
-              >
-                &ldquo;{prompt}&rdquo;
-              </Link>
-            ))}
+      {/* API Reference */}
+      <section className="bg-gray-100 py-16 px-4">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold mb-6 text-center">API Endpoints</h2>
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="text-left px-4 py-3 font-semibold">Method</th>
+                  <th className="text-left px-4 py-3 font-semibold">Endpoint</th>
+                  <th className="text-left px-4 py-3 font-semibold">Description</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                <tr><td className="px-4 py-2 text-green-700 font-mono">GET</td><td className="px-4 py-2 font-mono text-xs">/api/v1/search</td><td className="px-4 py-2 text-gray-600">Search entities</td></tr>
+                <tr><td className="px-4 py-2 text-green-700 font-mono">GET</td><td className="px-4 py-2 font-mono text-xs">/api/v1/browse/:id</td><td className="px-4 py-2 text-gray-600">Browse entity (L0/L1/L2)</td></tr>
+                <tr><td className="px-4 py-2 text-green-700 font-mono">GET</td><td className="px-4 py-2 font-mono text-xs">/api/v1/profile/:id</td><td className="px-4 py-2 text-gray-600">Full profile + capabilities</td></tr>
+                <tr><td className="px-4 py-2 text-green-700 font-mono">GET</td><td className="px-4 py-2 font-mono text-xs">/api/v1/memory</td><td className="px-4 py-2 text-gray-600">Get user memories</td></tr>
+                <tr><td className="px-4 py-2 text-blue-700 font-mono">POST</td><td className="px-4 py-2 font-mono text-xs">/api/v1/memory</td><td className="px-4 py-2 text-gray-600">Save user memory</td></tr>
+                <tr><td className="px-4 py-2 text-blue-700 font-mono">POST</td><td className="px-4 py-2 font-mono text-xs">/api/v1/book</td><td className="px-4 py-2 text-gray-600">Book appointment</td></tr>
+                <tr><td className="px-4 py-2 text-blue-700 font-mono">POST</td><td className="px-4 py-2 font-mono text-xs">/api/v1/order</td><td className="px-4 py-2 text-gray-600">Place order</td></tr>
+                <tr><td className="px-4 py-2 text-blue-700 font-mono">POST</td><td className="px-4 py-2 font-mono text-xs">/api/v1/message</td><td className="px-4 py-2 text-gray-600">Send message</td></tr>
+                <tr><td className="px-4 py-2 text-blue-700 font-mono">POST</td><td className="px-4 py-2 font-mono text-xs">/api/v1/entities/*</td><td className="px-4 py-2 text-gray-600">Create entities (user, profile, info-section, etc.)</td></tr>
+              </tbody>
+            </table>
           </div>
-        </div>
-      </section>
-
-      {/* Upload CTA */}
-      <section className="py-16 px-4 bg-[var(--cream-light)]">
-        <div className="max-w-3xl mx-auto text-center">
-          <div className="text-4xl mb-4">📋</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">
-            Build Your Student Portfolio
-          </h2>
-          <p className="text-gray-600 mb-6 max-w-xl mx-auto">
-            Upload your resume, transcript, or personal essay. BamaAdvisor uses them to give
-            you hyper-personalized advice and match you with the right opportunities.
-          </p>
-          <Link
-            href={session?.user ? "/settings" : "/auth/register"}
-            className="inline-block btn-crimson px-8 py-3 rounded-xl font-semibold text-lg shadow-md"
-          >
-            {session?.user ? "Upload Documents" : "Get Started"}
-          </Link>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-8 px-4">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">🐘</span>
-            <span className="text-white font-semibold">BamaAdvisor</span>
-          </div>
-          <p className="text-sm">
-            Built for UA students. Roll Tide!
-          </p>
-          <div className="flex gap-4 text-sm">
-            <Link href="/chat" className="hover:text-white transition-colors">Chat</Link>
-            <Link href="/opportunities" className="hover:text-white transition-colors">Opportunities</Link>
-            <Link href="/search" className="hover:text-white transition-colors">Browse</Link>
-          </div>
-        </div>
+      <footer className="py-8 text-center text-gray-500 text-sm">
+        <p>AgentNet Platform — Built for consumer apps to discover and interact with any entity.</p>
       </footer>
     </div>
   );

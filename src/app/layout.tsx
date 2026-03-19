@@ -1,35 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { Providers } from "@/components/providers";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "BamaAdvisor — AI Academic Advisor for The University of Alabama",
-  description:
-    "Your AI-powered academic advisor. Get personalized guidance on courses, research, scholarships, career paths, and more at UA.",
+  title: "AgentNet — Universal Entity Platform",
+  description: "Search, browse, and interact with entities through a unified API. Build consumer apps on top of AgentNet.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 min-h-screen`}
-      >
+      <body className={`${inter.className} bg-gray-50 text-gray-900 antialiased`}>
         <Providers>
           <Navbar />
           <main>{children}</main>
